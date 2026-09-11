@@ -309,9 +309,7 @@ cf-connect 内置了自动重连机制，断开后会自动尝试重新连接。
 
 ## 下一步
 
-- [接入飞书](./feishu.md)
-- [接入微博](./weibo.md)
-- [接入 Telegram](./telegram.md)
-- [接入 Slack](./slack.md)
-- [接入 Discord](./discord.md)
+- [3 步上手](../QUICKSTART.md)
+- [命令与功能用法](./usage.md)
+- [安装与部署](../INSTALL.md)
 - [返回首页](../README.md)

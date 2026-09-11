@@ -9,10 +9,6 @@ Complete guide to using cf-connect features.
 - [API Provider Management](#api-provider-management)
 - [Model Selection](#model-selection)
 - [Work Directory Switching (`/dir`, `/cd`)](#work-directory-switching-dir-cd)
-- [Feishu Setup CLI](#feishu-setup-cli)
-- [Weixin (personal) Setup CLI](#weixin-personal-setup-cli)
-- [Claude Code Router Integration](#claude-code-router-integration)
-- [Claude Code PermissionRequest Hooks](#claude-code-permissionrequest-hooks)
 - [Voice Messages (STT)](#voice-messages-speech-to-text)
 - [Voice Reply (TTS)](#voice-reply-text-to-speech)
 - [Image and File Send-Back](#image-and-file-send-back)
@@ -43,7 +39,6 @@ Each user gets an independent session with full conversation context. Manage ses
 | `/model [switch <alias>]` | List available models or switch by alias |
 | `/dir [path]` | Show or switch the agent work directory |
 | `/allow <tool>` | Pre-allow a tool (next session) |
-| `/reasoning [level]` | View or switch reasoning effort (Codex) |
 | `/mode [name]` | View or switch permission mode |
 | `/stop` | Stop current execution |
 | `/help` | Show available commands |
@@ -72,58 +67,27 @@ To restore the previous behavior of always continuing, set `reset_on_idle_mins =
 
 ## Permission Modes
 
-All agents support permission modes switchable at runtime via `/mode`.
+Permission modes are switchable at runtime via `/mode`.
 
-### Claude Code Modes
-
-| Mode | Config Value | Behavior |
-|------|-------------|----------|
-| Default | `default` | Every tool call requires approval |
-| Accept Edits | `acceptEdits` / `edit` | File edits auto-approved |
-| Auto | `auto` | Claude decides when to ask for permission |
-| Plan Mode | `plan` | Claude only plans, no execution |
-| YOLO | `bypassPermissions` / `yolo` | All tools auto-approved |
-
-### Codex Modes
+### CodeFree-O / OpenCode Modes
 
 | Mode | Config Value | Behavior |
 |------|-------------|----------|
-| Suggest | `suggest` | Only trusted commands run without approval |
-| Auto Edit | `auto-edit` | Model decides when to ask |
-| Full Auto | `full-auto` | Auto-approve with sandbox |
-| YOLO | `yolo` | Bypass all approvals and sandbox |
+| Default | `default` | Every risky tool call requires approval |
+| YOLO | `yolo` (aliases: `auto`, `force`, `bypasspermissions`) | Auto-approve all tool calls |
 
-### Cursor Agent Modes
-
-| Mode | Config Value | Behavior |
-|------|-------------|----------|
-| Default | `default` | Trust workspace, ask before tools |
-| Force (YOLO) | `force` / `yolo` | Auto-approve all |
-| Plan | `plan` | Read-only analysis |
-| Ask | `ask` | Q&A style, read-only |
-
-### Gemini CLI Modes
-
-| Mode | Config Value | Behavior |
-|------|-------------|----------|
-| Default | `default` | Prompt for approval |
-| Auto Edit | `auto_edit` / `edit` | Auto-approve edits |
-| YOLO | `yolo` | Auto-approve all |
-| Plan | `plan` | Read-only plan mode |
-
-### Qoder CLI / OpenCode / iFlow CLI
-
-| Mode | Config Value | Behavior |
-|------|-------------|----------|
-| Default | `default` | Standard permissions |
-| YOLO | `yolo` | Skip all checks |
+In `yolo` mode the adapter appends the flag configured by
+`permission_flag` (default `--auto`). Both current OpenCode (>= 1.18) and
+CodeFree-O accept `--auto`. Set the option to
+`--dangerously-skip-permissions` if you run an older OpenCode build, or to
+`none` to append nothing.
 
 ### Configuration
 
 ```toml
 [projects.agent.options]
 mode = "default"
-# allowed_tools = ["Read", "Grep", "Glob"]
+# permission_flag = "--auto"   # only used by mode = "yolo"
 ```
 
 Switch at runtime:
@@ -206,11 +170,8 @@ cf-connect provider import --project my-backend  # from cc-switch
 
 | Agent | api_key → | base_url → |
 |-------|-----------|------------|
-| Claude Code | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL` |
-| Codex | `OPENAI_API_KEY` | `OPENAI_BASE_URL` |
-| Gemini CLI | `GEMINI_API_KEY` | use `env` map |
+| CodeFree-O / OpenCode | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL` (or use the `env` map) |
 | OpenCode | `ANTHROPIC_API_KEY` | use `env` map |
-| iFlow CLI | `IFLOW_API_KEY` | `IFLOW_BASE_URL` |
 
 ---
 
@@ -299,7 +260,8 @@ Examples:
 ## Running agents as a different Unix user (`run_as_user`)
 
 > **Platform support**: Linux and macOS. Not supported on Windows.
-> **Agent support**: Claude Code today. Other agents fall back to the
+> **Agent support**: works with any agent whose CLI accepts `--dir`
+> (CodeFree-O and OpenCode do). Other agents fall back to the
 > supervisor user; see the tracking issue for migration status.
 
 ### What this is
@@ -348,13 +310,13 @@ sudo useradd -m -s /bin/bash partseeker-coder
 sudo -iu partseeker-coder
 
 # Install the agent CLI under the target user's PATH
-#   (for Claude Code, follow the normal install instructions)
+#   (install the CodeFree-O / OpenCode CLI for that user)
 
 # Set up the target user's ~/.claude/
 mkdir -p ~/.claude
 # Copy or re-create:
 #   ~/.claude/settings.json     (MCP servers, hooks, model settings)
-#   ~/.claude.json              (Claude Code auth)
+#   the CLI's own auth/config under that user's home
 #   ~/.claude/plugins/          (claude-mem and any other plugin state)
 
 exit
@@ -439,7 +401,7 @@ run_as_user = "partseeker-coder"
 run_as_env = ["PGSSLROOTCERT", "PGSSLMODE"]
 
 [projects.agent]
-type = "claudecode"
+type = "opencode"
 
 [projects.agent.options]
 mode = "default"
@@ -460,7 +422,7 @@ Migration checklist:
       model settings), `~/.claude.json` (auth). Copy from the supervisor
       or re-create from scratch.
 - [ ] **Plugin state** — `~/.claude/plugins/` — claude-mem, any other
-      Claude Code plugins.
+      agent plugins.
 - [ ] **MCP server binaries** — must be on the target user's `PATH`, not
       just the supervisor's. Either install under the target user or
       reference full paths in `settings.json`.
@@ -539,152 +501,6 @@ behavior (spawn as supervisor) returns on the next restart.
 
 ---
 
-## Feishu Setup CLI
-
-Use CLI to create or bind Feishu/Lark bot credentials and write them back to `config.toml`.
-
-```bash
-# Recommended: unified entry
-cf-connect feishu setup --project my-project
-cf-connect feishu setup --project my-project --app cli_xxx:sec_xxx
-
-# Force modes (usually unnecessary)
-cf-connect feishu new --project my-project
-cf-connect feishu bind --project my-project --app cli_xxx:sec_xxx
-```
-
-Differences:
-- `setup`: unified entry. No credentials => behaves like `new`; with `--app` => behaves like `bind`.
-- `new`: force QR onboarding flow; rejects `--app`.
-- `bind`: force credential binding flow; requires credentials.
-
-Behavior:
-- `setup` uses QR onboarding by default, or bind mode when `--app` is provided.
-- If `--project` does not exist, it is created automatically.
-- If project exists but has no `feishu/lark` platform, one is added automatically.
-- The command writes credentials (`app_id`, `app_secret`); in QR onboarding flow, Feishu usually pre-configures permissions and event subscriptions.
-- Still verify app publish status and availability scope in Feishu Open Platform.
-- Runtime platform config also supports an optional `domain` override for Feishu/Lark API endpoints; this does not change setup/onboarding URLs.
-
----
-
-## Weixin (personal) Setup CLI
-
-Weixin personal chat uses the **ilink bot HTTP API** (long polling + `sendMessage`, same family as OpenClaw `openclaw-weixin`). Use the CLI to scan a QR code or bind an existing Bearer token and write `config.toml`.
-
-**Full walkthrough (Chinese): [docs/weixin.md](./weixin.md).**
-
-```bash
-cf-connect weixin setup --project my-project
-cf-connect weixin bind --project my-project --token '<token>'
-cf-connect weixin new --project my-project
-```
-
-Notes:
-- `setup` without `--token` runs QR login; with `--token` behaves like bind.
-- Auto-creates the project and/or a `weixin` platform block when missing.
-- After login, send a message from WeChat once so `context_token` is cached.
-- See `cf-connect weixin help` for flags (`--api-url`, `--cdn-url`, `--route-tag`, etc.).
-
----
-
-## Claude Code Router Integration
-
-[Claude Code Router](https://github.com/musistudio/claude-code-router) routes requests to different model providers.
-
-### Setup
-
-1. Install: `npm install -g @musistudio/claude-code-router`
-
-2. Configure `~/.claude-code-router/config.json`:
-```json
-{
-  "APIKEY": "your-secret-key",
-  "Providers": [
-    {
-      "name": "deepseek",
-      "api_base_url": "https://api.deepseek.com/chat/completions",
-      "api_key": "sk-xxx",
-      "models": ["deepseek-chat", "deepseek-reasoner"],
-      "transformer": { "use": ["deepseek"] }
-    }
-  ],
-  "Router": {
-    "default": "deepseek,deepseek-chat",
-    "think": "deepseek,deepseek-reasoner"
-  }
-}
-```
-
-3. Start: `ccr start`
-
-4. Configure cf-connect:
-```toml
-[projects.agent.options]
-router_url = "http://127.0.0.1:3456"
-router_api_key = "your-secret-key"  # optional
-```
-
----
-
-## Claude Code PermissionRequest Hooks
-
-If you have [PermissionRequest hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) configured in your Claude Code `settings.json`, cf-connect will respect them — matching hooks can auto-approve or deny tool requests before they reach the messaging platform.
-
-### Why hooks run twice
-
-cf-connect launches Claude Code with `--permission-prompt-tool stdio`, which means Claude Code's own hook execution output is discarded (stdout is consumed by the protocol). To make your hooks actually take effect, cf-connect reads the hook definitions from `settings.json` and **re-runs them independently**.
-
-This means your hook command is executed **twice** per permission request:
-
-1. Once by Claude Code (result discarded)
-2. Once by cf-connect (result used)
-
-### Avoiding double cost for LLM-based hooks
-
-If your hook is rule-based (e.g. "deny `rm -rf`"), running twice is harmless. But if your hook calls an LLM (like [ccgate](https://github.com/tak848/ccgate)), the first execution wastes tokens. Add this guard at the top of your hook:
-
-```bash
-#!/bin/bash
-if [ -n "$CC_CONNECT_PERMISSION_HOOK_SKIP" ]; then
-  exit 0  # cf-connect will re-run us without this flag
-fi
-# ... your actual hook logic ...
-```
-
-cf-connect sets `CC_CONNECT_PERMISSION_HOOK_SKIP=1` in the Claude Code subprocess environment. When your hook sees this variable, it's running inside Claude Code (result will be discarded) — skip the expensive work. cf-connect strips this variable when it runs the hook itself, so the second execution proceeds normally.
-
----
-
-## Voice Messages (Speech-to-Text)
-
-Send voice messages — cf-connect transcribes them automatically.
-
-**Supported:** Feishu, WeChat Work, Telegram, LINE, Discord, Slack
-
-**Requirements:** OpenAI/Groq API key, `ffmpeg`
-
-### Configure
-
-```toml
-[speech]
-enabled = true
-provider = "openai"    # or "groq"
-language = ""          # "zh", "en", or auto-detect
-
-[speech.openai]
-api_key = "sk-xxx"
-# base_url = ""
-# model = "whisper-1"
-
-# [speech.groq]
-# api_key = "gsk_xxx"
-# model = "whisper-large-v3-turbo"
-```
-
-### Install ffmpeg
-
-```bash
 # Ubuntu/Debian
 sudo apt install ffmpeg
 
@@ -698,7 +514,7 @@ brew install ffmpeg
 
 Synthesize AI replies into voice messages.
 
-**Supported:** Platforms that implement audio sending, such as Feishu/Lark, DingTalk, Telegram, Max, and Weixin.
+**Supported:** platforms that implement audio sending - in this build, DingTalk.
 
 ### Configure
 
@@ -741,8 +557,7 @@ Switch: `/tts always` or `/tts voice_only`
 When an agent generates a local image, PDF, report, bundle, or other file and needs to deliver it directly to the current chat, use attachment mode in `cf-connect send`. When the user explicitly asks for a voice message, the agent can also send synthesized speech through the same CLI.
 
 **Currently supported platforms:**
-- Feishu
-- Telegram
+- DingTalk
 
 ### When to run setup first
 
@@ -841,11 +656,11 @@ cf-connect cron del <job-id>
 
 Optional: `--session-mode new-per-run` starts a fresh agent session on each run (default is `reuse`, same as before). `--timeout-mins N` sets how long the scheduler waits per run (`0` = no limit; omit = 30 minutes).
 
-### Natural Language (Claude Code)
+### Natural Language
 
 > "Every day at 6am, summarize GitHub trending"
 
-Claude Code auto-creates the cron job. For other agents that rely on memory files, run `/cron setup` or `/bind setup` once first; both write the same instructions.
+Agents that write cron entries from a memory file need `/cron setup` or `/bind setup` run once first; both write the same instructions.
 
 ---
 
@@ -929,15 +744,15 @@ Cross-platform bot communication in group chats.
 
 ```
 /bind              Show bindings
-/bind claudecode   Add claudecode project
-/bind gemini       Add gemini project
-/bind -claudecode  Remove claudecode
+/bind my-project    Add a project
+/bind other-proj    Add another project
+/bind -my-project   Remove a project
 ```
 
 ### Bot-to-Bot Communication
 
 ```bash
-cf-connect relay send --to gemini "What do you think about this architecture?"
+cf-connect relay send --to other-proj "What do you think about this architecture?"
 ```
 
 ---
@@ -971,7 +786,7 @@ mode = "multi-workspace"
 base_dir = "~/workspaces"
 
 [projects.agent]
-type = "claudecode"
+type = "opencode"
 ```
 
 ### Commands
@@ -1141,7 +956,7 @@ See [config.example.toml](../config.example.toml) for full examples.
 name = "my-project"
 
 [projects.agent]
-type = "claudecode"  # or codex, cursor, gemini, qoder, opencode, iflow
+type = "opencode"    # or "codefree-o" (same adapter)
 
 [projects.agent.options]
 work_dir = "/path/to/project"
@@ -1149,7 +964,7 @@ mode = "default"
 provider = "anthropic"
 
 [[projects.platforms]]
-type = "feishu"  # or wps-xiezuo, dingtalk, telegram, slack, discord, wecom, weixin, line, qq, qqbot
+type = "dingtalk"    # the only platform in this build
 
 [projects.platforms.options]
 # platform-specific options
@@ -1163,107 +978,3 @@ Quick answers to questions that came up repeatedly in issues and that the
 maintainers have resolved. Each entry links back to the originating issue
 or PR so you can dig further if needed.
 
-### Does cf-connect support OpenClaw? (issue #501)
-
-Yes. OpenClaw is supported via the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/get-started/agents). cf-connect ships an `acp` agent type that talks to any ACP-compatible CLI, including OpenClaw's `openclaw acp` subcommand.
-
-Minimal config snippet (full version is in `config.example.toml` under
-`# --- Example: OpenClaw (Gateway-backed ACP bridge) ---`):
-
-```toml
-[[projects]]
-name = "openclaw-acp"
-
-[projects.agent]
-type = "acp"
-
-[projects.agent.options]
-work_dir = "/path/to/project"
-command = "openclaw"
-args = ["acp"]
-display_name = "OpenClaw ACP"
-```
-
-**Pairing is required for remote gateways.** If you point cf-connect at a
-remote OpenClaw Gateway (`args = ["acp", "--url", "wss://..."]`) you must
-pair first or every reply comes back empty:
-
-1. Start the gateway: `openclaw acp --url wss://your-gateway:18789`
-2. In another terminal: `openclaw pair`
-3. Approve the pairing request in the OpenClaw UI
-4. Now cf-connect can talk to the authorized gateway
-
-Empty responses from OpenClaw are almost always a missing pairing step
-(issue #432). Re-run `openclaw pair` and re-approve before debugging
-anything else. Reference: <https://zhuanlan.zhihu.com/p/2005687480976970296>
-
-### Personal WeChat group chat — finding the right `chat_id` (issue #805)
-
-Personal WeChat (the `weixin` platform) supports group chats. To bind the
-bot to a specific group, set `chat_id` in `[[projects.platforms.options]]`
-to the **group chat ID**, not an individual user ID. Group chat IDs always
-end with `@chatroom`, for example:
-
-```toml
-[[projects.platforms]]
-type = "weixin"
-
-[projects.platforms.options]
-token = "ilink_bot_bearer_token"
-chat_id = "your_group_chat_id@chatroom"   # group chats end with @chatroom
-```
-
-**How to find the group chat ID:**
-
-1. Start cf-connect and let the bot be in the target group.
-2. Send any message in the group from a known allowed account.
-3. Check the cf-connect logs — the incoming `chat_id` (ending in
-   `@chatroom`) is logged at the moment the message is received. Copy
-   that value into `chat_id`.
-
-Leave `chat_id` empty (or omit the key) to respond to every chat the bot
-is in. Set it to a specific value to restrict the bot to that group or
-user only.
-
-Common pitfalls:
-
-- **"How do I add the bot to a group?"** Personal WeChat bots are added
-  by scanning the QR code *inside* the group with the linked WeChat
-  account, or by sharing the QR via the personal chat and then opening
-  it inside the target group. There is no API-side "invite bot to group"
-  call; the bot becomes a group member the same way any other WeChat
-  contact does.
-- **Bot never receives group messages** — make sure the group is bound
-  to your cf-connect instance. If `allow_from` is set, the first user
-  to message in the group is recorded; if the binding is to a
-  different user, the bot stays silent.
-- **Bot replies in private but ignores the group (or vice versa)** —
-  duplicate the `[[projects.platforms]]` block, one with `chat_id` set
-  to the group and one without, to cover both surfaces.
-
-For more on the `weixin` platform, see [docs/weixin.md](./weixin.md).
-
-### Telegram proxy / outbound restrictions (issue #245)
-
-The Telegram platform supports HTTP and SOCKS5 forward proxies directly in
-`[projects.platforms.options]`. You do not need a system-wide proxy or a
-sidecar — set the proxy per Telegram instance.
-
-```toml
-[[projects.platforms]]
-type = "telegram"
-
-[projects.platforms.options]
-token = "${TELEGRAM_BOT_TOKEN}"
-proxy = "http://127.0.0.1:7890"     # or socks5://127.0.0.1:1080
-proxy_username = ""                  # leave empty if no auth
-proxy_password = ""
-```
-
-`proxy` accepts both `http://` and `socks5://` URLs. Authentication is
-optional. The proxy only affects the Telegram Bot API calls for that
-platform instance; other platforms and the management API are not
-tunneled through it.
-
-Full reference: [docs/telegram.md](./telegram.md#21-optional-use-a-proxy).
-This option was added in PR #389.

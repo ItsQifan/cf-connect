@@ -1,835 +1,262 @@
-# cf-connect Installation & Configuration Guide
+# CF-Connect 安装与部署
 
-> **This document is designed to be read by AI coding agents (Claude Code, Cursor, Gemini CLI, etc.) to help users install and configure cf-connect.** You can feed this file directly to your AI agent.
+> 本文可直接喂给 AI 编程助手，让它帮你完成安装配置。
 
-## What is cf-connect?
-
-cf-connect bridges local AI coding assistants to messaging platforms (Feishu, DingTalk, Telegram, Slack, Discord, LINE, WeChat Work, QQ, **personal WeChat** via the **Weixin (ilink)** platform).
+CF-Connect 把本机的 **CodeFree-O**（或 OpenCode）接到 **钉钉**：
+钉钉里发消息 → 本机 agent 干活 → 流式结果回到钉钉。
 
 GitHub: https://github.com/ItsQifan/cf-connect
 
-**IMPORTANT: If you are an AI agent helping a user install cf-connect, use interactive tools (like AskUserQuestion) to guide them through configuration choices:**
-- Agent selection (Claude Code, Cursor, Gemini, etc.)
-- Platform selection (Feishu, Telegram, Discord, etc.)
-- API keys and authentication tokens
-- Project paths and preferences
+> 第一次使用请先看 [QUICKSTART.md](./QUICKSTART.md)（3 步上手 + 排障表）。
 
-Don't guess values—always ask the user to choose via interactive prompts.
+---
 
-## Step 1: Install cf-connect
+## 1. 运行环境
 
-### Option A: npm (recommended for most users)
+### 使用者需要什么
 
-```bash
-npm install -g cf-connect
+| 需要 | 说明 |
+|---|---|
+| 本项目的发行包 | `cf-connect-vX-{os}-{arch}.zip`（Windows）/ `.tar.gz`（Linux/macOS） |
+| 钉钉企业内部应用 | 每人一套，**Stream 模式**机器人（无需公网 IP、无需回调地址） |
+| CodeFree-O CLI | 已安装并已登录；`codefree-o --version` 能正常输出 |
+
+**不需要**：Go、Node、Python、Java、npm、sqlite3。
+
+原因：Go 编译产物是静态单文件（`CGO_ENABLED=0`），Web 管理界面通过 `go:embed` 打进二进制；
+会话标题/消息数使用进程内纯 Go sqlite 读取，不依赖外部 `sqlite3` 命令。
+
+### 构建者需要什么
+
+- Go 1.25 或更高
+- Node 22 + pnpm（仅用于构建 Web 管理界面）
+
+---
+
+## 2. 安装
+
+### 2.1 解压
+
+解压到**英文路径**：
+
+| 平台 | 建议路径 |
+|---|---|
+| Windows | `D:\tools\cf-connect\` |
+| macOS / Linux | `/opt/cf-connect/` 或 `~/cf-connect/` |
+
+> 中文路径或含空格的路径可能引发第三方 CLI 的解析问题，建议避免。
+
+解压后应包含：
+
+```
+cf-connect(.exe)        主程序
+config.example.toml     配置模板
+QUICKSTART.md           快速上手
+install.ps1             可选：加入用户 PATH（仅 Windows）
+README.md
 ```
 
-After installation, the `cf-connect` binary will be available globally.
+### 2.2 加入 PATH（可选，Windows）
 
-
-### Option B: Homebrew (macOS / Linux)
-
-```bash
-brew install cf-connect
+```powershell
+cd D:\tools\cf-connect
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-### Option C: Download binary from GitHub Releases
+只写 `HKCU`（不需要管理员权限）。撤销：
 
-Go to https://github.com/ItsQifan/cf-connect/releases and download the binary for your platform.
-
-Typical artifact names (check the release page for exact filenames):
-
-- Linux: `cf-connect-<version>-linux-amd64` (or `.tar.gz`)
-- macOS: `cf-connect-<version>-darwin-amd64` / `arm64`
-- Windows: `cf-connect-<version>-windows-amd64.exe` (or `.zip`)
-
-```bash
-# Example for Linux amd64 (replace URL with the asset link from the release you chose):
-curl -L -o cf-connect https://github.com/ItsQifan/cf-connect/releases/latest/download/cf-connect-linux-amd64
-chmod +x cf-connect
-sudo mv cf-connect /usr/local/bin/
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Uninstall
 ```
 
-On macOS, you may need to remove the quarantine attribute:
+**只有新开的终端**才会看到 PATH 变化。
+
+### 2.3 未签名程序提示（Windows）
+
+`cf-connect.exe` 未做代码签名，首次运行可能被 SmartScreen 或杀软拦截：
+
+- 右键 exe → 属性 → 勾选「解除锁定」→ 确定
+- 或在 SmartScreen 弹窗里「更多信息」→「仍要运行」
+- 企业环境请走统一的签名/白名单流程
+
+### 2.4 从源码构建
 
 ```bash
-xattr -d com.apple.quarantine cf-connect
-```
-
-### Option D: Build from source
-
-Requires Go 1.22+.
-
-```bash
-git clone https://github.com/ItsQifan/cf-connect.git
+git clone https://github.com/ItsQifan/cf-connect
 cd cf-connect
-make build
-# Binary will be at ./cf-connect
+
+# Web 管理界面会被 go:embed 进二进制，必须先构建
+cd web && pnpm install && pnpm build && cd ..
+
+go build -o cf-connect ./cmd/cf-connect
+
+# 打全部平台的发行包（自动附带 config.example.toml / QUICKSTART.md / install.ps1）
+make release-all
 ```
 
-## Step 2: Install your AI Agent
-
-cf-connect supports multiple local coding agents. Install at least one:
+不带 Web 管理界面：
 
 ```bash
-# Claude Code
-npm install -g @anthropic-ai/claude-code
-
-# Codex
-npm install -g @openai/codex
-
-# Gemini CLI
-npm install -g @google/gemini-cli
-
-# iFlow CLI
-npm install -g @iflow-ai/iflow-cli
-
-# Qoder CLI
-curl -fsSL https://qoder.com/install | bash
+go build -tags 'no_web' -o cf-connect ./cmd/cf-connect
 ```
 
-For **Cursor Agent** and **OpenCode**, follow their official install docs:
-- Cursor Agent: https://docs.cursor.com/agent
-- OpenCode: https://github.com/opencode-ai/opencode
+---
 
-Verify your selected agent works:
-
-```bash
-claude --version
-codex --version
-gemini --version
-iflow --version
-opencode --version
-qodercli --version
-```
-
-## Step 3: Create config.toml
-
-> **💡 Recommended: Use the Web UI** — After installing, run `cf-connect web` to configure the web admin and open the dashboard in your browser. You can visually create projects, add platforms, manage API providers, and even chat with your agent directly from the browser — no need to edit TOML files by hand. **Note:** `cf-connect web` only configures and opens the browser — you still need to run `cf-connect` separately to start the service.
-
-If you prefer manual configuration, cf-connect looks for config in this order:
-1. `-config <path>` flag (explicit)
-2. `./config.toml` (current directory)
-3. `~/.cf-connect/config.toml` (global, **recommended**)
-
-If no config file exists, running `cf-connect` will auto-create a starter template at `~/.cf-connect/config.toml`.
-
-**Manual config location:**
-
-```bash
-mkdir -p ~/.cf-connect
-# If you cloned the repo, copy the example:
-cp config.example.toml ~/.cf-connect/config.toml
-# Or just run cf-connect once — it will create a starter config automatically
-```
-
-You can also use a local config in the current directory:
+## 3. 配置
 
 ```bash
 cp config.example.toml config.toml
 ```
 
-The configuration has this structure:
+配置文件查找顺序：
+
+1. `--config <path>` 显式指定
+2. 当前目录的 `./config.toml`
+3. `~/.cf-connect/config.toml`
+
+最小可用配置：
 
 ```toml
-# Optional global settings
-# language = "en"  # "en", "zh", or "" (auto-detect)
-
-[log]
-level = "info"  # debug, info, warn, error
-
-# Each [[projects]] entry connects one code folder to one or more messaging platforms
 [[projects]]
 name = "my-project"
 
 [projects.agent]
-type = "claudecode"  # or "codex", "cursor", "gemini", "qoder", "opencode", "iflow"
+type = "opencode"          # 或写 "codefree-o"，同一个适配器
 
 [projects.agent.options]
-work_dir = "/absolute/path/to/your/project"
+work_dir = "E:\\work\\my-project"
+cmd = "codefree-o"          # 建议改成绝对路径（daemon 不继承终端 PATH）
 mode = "default"
 
-# --- Claude Code mode options ---
-# "default", "acceptEdits" (alias: "edit"), "plan", "auto", "bypassPermissions" (alias: "yolo")
-# allowed_tools = ["Read", "Grep", "Glob"]  # optional: pre-approve specific tools
-
-# --- Codex mode options ---
-# "suggest" (default), "auto-edit", "full-auto", "yolo"
-# model = "o3"  # optional: specify model
-
-# --- Qoder CLI mode options ---
-# "default", "yolo"
-# model = "auto"  # "auto", "ultimate", "performance", "efficient", "lite"
-
-# --- iFlow CLI mode options ---
-# "default", "auto-edit", "plan", "yolo"
-# model = "Qwen3-Coder"  # optional: specify model
-
-# Add one or more platform sections below
-```
-
-## Step 4: Configure a Messaging Platform
-
-Choose one or more platforms to connect. Each platform requires creating a bot/app on the platform's developer console and copying credentials into config.toml.
-
----
-
-### Feishu (Lark) — No public IP needed
-
-Connection: WebSocket long connection (SDK auto-negotiates)
-
-**CLI shortcut (recommended):**
-
-```bash
-# Recommended: unified entry
-cf-connect feishu setup --project my-project
-cf-connect feishu setup --project my-project --app cli_xxx:sec_xxx
-
-# Force modes (usually unnecessary)
-cf-connect feishu new --project my-project
-
-cf-connect feishu bind --project my-project --app cli_xxx:sec_xxx
-```
-
-Notes:
-- `setup` is the unified entry:
-  - no credentials => same as `new`
-  - with `--app`/`--app-id` => same as `bind`
-- `setup/new` prints a terminal QR code + URL for mobile scanning.
-- If `--project` does not exist, cf-connect creates it automatically.
-- This flow fills `app_id` / `app_secret`; in QR onboarding flow, Feishu usually pre-configures permissions and event subscriptions.
-- Still verify app publish status and availability scope in Feishu Open Platform.
-
-**Setup steps:**
-1. Go to https://open.feishu.cn → Console → Create Enterprise App
-2. Enable **Bot** capability (App Capabilities → Bot)
-3. Go to **Permissions** → add `im:message.receive_v1`, `im:message:send_as_bot`
-4. Go to **Event Subscriptions** → select **WebSocket long connection mode** → add event `im.message.receive_v1`
-5. Publish the app version
-6. Copy App ID and App Secret
-
-**Config:**
-
-```toml
-[[projects.platforms]]
-type = "feishu"
-
-[projects.platforms.options]
-app_id = "cli_xxxxxxxxxxxx"
-app_secret = "xxxxxxxxxxxxxxxxxxxxxxxx"
-```
-
-**Detailed guide:** [docs/feishu.md](docs/feishu.md)
-
----
-
-### DingTalk — No public IP needed
-
-Connection: Stream mode (WebSocket)
-
-**Setup steps:**
-1. Go to https://open-dev.dingtalk.com → Create App
-2. Enable **Bot** capability, select **Stream mode**
-3. Configure permissions for messaging
-4. Copy Client ID (AppKey) and Client Secret (AppSecret)
-
-**Config:**
-
-```toml
 [[projects.platforms]]
 type = "dingtalk"
 
 [projects.platforms.options]
-client_id = "dingxxxxxxxxxxxxxxxxx"
-client_secret = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+client_id = "你的 AppKey"
+client_secret = "你的 AppSecret"
 ```
 
-**Detailed guide:** [docs/dingtalk.md](docs/dingtalk.md)
+创建钉钉应用的完整步骤见 [QUICKSTART.md](./QUICKSTART.md)。
+
+### 常用 agent 选项
+
+| 选项 | 默认 | 说明 |
+|---|---|---|
+| `work_dir` | `.` | agent 改代码的目录 |
+| `cmd` | `opencode` | CLI 名或绝对路径；数组形式可带额外参数 |
+| `mode` | `default` | `default` 逐次确认；`yolo` 全自动 |
+| `permission_flag` | `--auto` | `yolo` 追加的 flag。老版 opencode 可设 `--dangerously-skip-permissions`，或 `none` 表示不追加 |
+| `model` | CLI 默认 | `provider/model`，用 `codefree-o models` 查 |
+| `agent` | — | 传给 CLI 的 `--agent` |
+| `data_dir` / `db_file` | 自动识别 | 会话数据库位置。codefree-o 自动读 `~/.codefree-o/.local/share/codefree.db`，opencode 读 `~/.local/share/opencode/opencode.db` |
+| `global_memory_file` | 自动探测 | 全局指令文件；codefree-o 优先 `~/.codefree-o/.config/{OPENCODE,AGENTS}.md` |
+| `env` | — | 传给 agent 进程的额外环境变量 |
+
+### 常用钉钉选项
+
+| 选项 | 说明 |
+|---|---|
+| `client_id` / `client_secret` | 应用凭证（必填） |
+| `robot_code` | 与 client_id 不同时才需要 |
+| `allow_from` | 允许的使用者（逗号分隔，`*` 表示全部） |
+| `share_session_in_channel` | 群内共用一个会话（默认每人独立） |
+| `card_template_id` / `card_template_key` | 启用 AI 卡片流式回显 |
+| `card_throttle_ms` | 卡片更新节流 |
+| `reaction_emoji` / `done_emoji` | 用表情回应代替文字确认 |
 
 ---
 
-### Telegram — No public IP needed
+## 4. 运行与常驻
 
-Connection: Long Polling
-
-**Setup steps:**
-1. Message @BotFather on Telegram → send `/newbot`
-2. Follow prompts to set bot name and username (must end with `bot`)
-3. Copy the bot token
-
-**Config:**
-
-```toml
-[[projects.platforms]]
-type = "telegram"
-
-[projects.platforms.options]
-token = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
-```
-
-**Detailed guide:** [docs/telegram.md](docs/telegram.md)
-
----
-
-### Slack — No public IP needed
-
-Connection: Socket Mode (WebSocket)
-
-**Setup steps:**
-1. Go to https://api.slack.com/apps → Create New App → From scratch
-2. Enable **Socket Mode** (Settings → Socket Mode) → generate App-Level Token (`xapp-...`)
-3. Subscribe to bot events: `message.im`, `app_mention` (Event Subscriptions)
-4. Add Bot Token Scopes: `chat:write`, `im:history`, `im:read`, `im:write`, `app_mentions:read`
-5. Install App to Workspace → copy Bot Token (`xoxb-...`)
-
-**Config:**
-
-```toml
-[[projects.platforms]]
-type = "slack"
-
-[projects.platforms.options]
-bot_token = "xoxb-your-bot-token"
-app_token = "xapp-your-app-level-token"
-```
-
-**Detailed guide:** [docs/slack.md](docs/slack.md)
-
----
-
-### Discord — No public IP needed
-
-Connection: Gateway WebSocket
-
-**Setup steps:**
-1. Go to https://discord.com/developers/applications → New Application
-2. Go to **Bot** → Add Bot → copy Token
-3. Enable **Message Content Intent** (under Privileged Gateway Intents)
-4. Go to **OAuth2** → URL Generator → select scope `bot` → select permissions `Send Messages`, `Read Message History`
-5. Open the generated URL to invite bot to your server
-
-**Config:**
-
-```toml
-[[projects.platforms]]
-type = "discord"
-
-[projects.platforms.options]
-token = "your-discord-bot-token"
-```
-
-**Detailed guide:** [docs/discord.md](docs/discord.md)
-
----
-
-### LINE — Requires public URL
-
-Connection: HTTP Webhook (you need ngrok, cloudflared, or a server with public IP)
-
-**Setup steps:**
-1. Go to https://developers.line.biz/console/ → Create Messaging API channel
-2. Copy Channel Secret and Channel Access Token (long-lived)
-3. Set webhook URL in LINE console: `https://<your-public-domain>:<port>/callback`
-4. Expose local port using ngrok/cloudflared: `ngrok http 8080` or `cloudflared tunnel --url http://localhost:8080`
-
-**Config:**
-
-```toml
-[[projects.platforms]]
-type = "line"
-
-[projects.platforms.options]
-channel_secret = "your-channel-secret"
-channel_token = "your-channel-access-token"
-port = "8080"
-callback_path = "/callback"
-```
-
----
-
-### WeChat Work (企业微信) — Requires public URL
-
-Connection: HTTP Webhook (you need ngrok, cloudflared, or a server with public IP)
-
-**Setup steps:**
-1. Log in to https://work.weixin.qq.com/wework_admin/frame
-2. **App Management** → Create custom app → note AgentId and Secret
-3. **My Enterprise** → note Corp ID
-4. In the app → **Receive Messages** → Set API Receive:
-   - URL: `https://<your-public-domain>:<port>/wecom/callback`
-   - Token: any random string
-   - EncodingAESKey: click "Random Generate" (43 chars)
-   - **Start cf-connect FIRST, then save** (to pass URL verification)
-5. **Trusted IP** → add your server's outbound public IP
-6. (Optional) **WeChat Plugin** → scan QR to link personal WeChat
-
-**Config:**
-
-```toml
-[[projects.platforms]]
-type = "wecom"
-
-[projects.platforms.options]
-corp_id = "wwxxxxxxxxxxxxxxxxx"
-corp_secret = "your-app-secret"
-agent_id = "1000002"
-callback_token = "your-callback-token"
-callback_aes_key = "your-43-char-encoding-aes-key"
-port = "8081"
-callback_path = "/wecom/callback"
-api_base_url = "https://qyapi.weixin.qq.com"  # optional: override WeChat Work API base URL (for private deployments)
-enable_markdown = false  # true = Markdown messages (WeChat Work app only; personal WeChat shows "unsupported")
-# proxy = "http://your-vps-ip:8888"  # optional: forward proxy if your IP is dynamic
-```
-
-**Detailed guide:** [docs/wecom.md](docs/wecom.md)
-
-### Weixin (personal, ilink) — No public IP needed
-
-Personal WeChat uses Tencent’s **ilink bot HTTP API** (same family as OpenClaw `openclaw-weixin`). The recommended flow is CLI QR login, which writes `token` (and related fields) into `config.toml`.
-
-1. Run:
-
-   ```bash
-   cf-connect weixin setup --project my-project
-   ```
-
-2. Scan the QR code (or open the printed URL) in WeChat and confirm.
-
-3. Restart cf-connect, then send a message from WeChat once so `context_token` is cached.
-
-If you already have a Bearer token, use `cf-connect weixin bind --project my-project --token '<token>'`.
-
-**Detailed guide (Chinese):** [docs/weixin.md](docs/weixin.md)
-
-### QQ (via NapCat / OneBot v11) — No public IP needed
-
-QQ integration requires a third-party OneBot v11 implementation (e.g., NapCat) as a bridge.
-
-1. Deploy NapCat (recommended via Docker):
-   ```bash
-   docker run -d --name napcat -e ACCOUNT=<QQ号> -p 3001:3001 -p 6099:6099 --restart unless-stopped mlikiowa/napcat-docker:latest
-   ```
-2. First launch: check `docker logs -f napcat` for a QR code, scan with QQ mobile app to log in
-3. Open NapCat WebUI at `http://localhost:6099`, enable **Forward WebSocket** on port 3001
-4. Add to `config.toml`:
-
-```toml
-[[projects.platforms]]
-type = "qq"
-
-[projects.platforms.options]
-ws_url = "ws://127.0.0.1:3001"  # NapCat Forward WebSocket URL
-token = ""                       # optional: access_token (must match NapCat config)
-allow_from = "*"                 # allowed QQ user IDs: "12345,67890" or "*" for all
-```
-
-**Detailed guide:** [docs/qq.md](docs/qq.md)
-
----
-
-### Matrix — No public IP needed
-
-Connection: Long Polling via /sync
-
-**Setup steps:**
-1. Create an account on a Matrix homeserver (e.g. [matrix.org](https://matrix.org), or your own self-hosted server)
-2. Get an access token:
-   - Open **Element** (or your preferred Matrix client)
-   - Go to **Settings** → **Help & About** → **Advanced** → click **Access Token**
-   - Copy the token (it starts with `syt_` on most servers)
-3. (Optional) Note your user ID (e.g. `@bot:matrix.org`)
-
-**Config:**
-
-```toml
-[[projects.platforms]]
-type = "matrix"
-
-[projects.platforms.options]
-homeserver = "https://matrix.org"
-access_token = "syt_xxx_xxx"
-# user_id = "@bot:matrix.org"           # optional, auto-detected
-# allow_from = "*"
-# auto_join = true                       # default true
-# share_session_in_channel = false
-# group_reply_all = false
-# proxy = ""
-```
-
-**Detailed guide:** [docs/matrix.md](docs/matrix.md)
-
----
-
-## Step 5: Run cf-connect
-
-**Open the Web UI (recommended):**
+### 前台运行（先这样验证）
 
 ```bash
-cf-connect web    # configure web admin & open browser (does NOT start cf-connect)
-cf-connect        # start the service
+./cf-connect
 ```
 
-> **Note:** `cf-connect web` only configures the web admin and opens the dashboard in your browser — it does **not** start the cf-connect service itself. You still need to run `cf-connect` (or `cf-connect --config <path>`) separately to actually start the bridge. Think of it as two steps: configure first, then run.
-
-**Important: If you are running inside a Claude Code session** (e.g., Claude Code helped you install and configure cf-connect), you must unset the `CLAUDECODE` environment variable before starting, otherwise Claude Code will refuse to launch as a subprocess:
+### 常驻服务
 
 ```bash
-unset CLAUDECODE && cf-connect
-```
-
-Alternatively, open a **separate terminal** and run cf-connect there — this avoids the issue entirely.
-
-**Normal startup:**
-
-```bash
-# Run with config.toml in current directory
-cf-connect
-
-# Or specify config path
-cf-connect -config /path/to/config.toml
-
-# Check version
-cf-connect --version
-```
-
-You should see logs like:
-
-```
-level=INFO msg="platform started" project=my-project platform=feishu
-level=INFO msg="engine started" project=my-project agent=claudecode platforms=1
-level=INFO msg="cf-connect is running" projects=1
-```
-
-## Step 6: Chat Commands
-
-Once running, send messages to your bot on the configured platform. Available slash commands:
-
-```
-/new [name]      — Start a new session
-/list            — List agent sessions
-/switch <id>     — Resume an existing session
-/current         — Show current active session
-/history [n]     — Show last n messages (default 10)
-/reasoning [level] — View/switch reasoning effort (Codex)
-/mode [name]     — View/switch permission mode (default/edit/plan/yolo)
-/quiet           — Toggle thinking/tool progress messages
-/allow <tool>    — Pre-allow a tool (next session)
-/provider [...]  — Manage API providers (list/add/remove/switch)
-/stop            — Stop current execution
-/help            — Show available commands
-```
-
-During a session, Claude may ask for tool permissions. Reply:
-- `allow` or `允许` — approve this request
-- `deny` or `拒绝` — reject this request
-- `allow all` or `允许所有` — auto-approve all remaining requests this session
-
-## Step 7: Enable Natural Language Scheduling (Non-Claude-Code Agents)
-
-cf-connect supports scheduled tasks (cron jobs). You can always create them via slash commands (`/cron add ...`) or CLI (`cf-connect cron add ...`), but to let the agent **understand natural language** like "every day at 6am, summarize trending repos", the agent needs to know about cf-connect's cron CLI.
-
-**Claude Code** handles this automatically via `--append-system-prompt` — no extra setup needed.
-
-**For Codex, Cursor Agent, Qoder CLI, Gemini CLI, OpenCode, or iFlow CLI**, add the following instructions to the agent's project-level instruction file in your project's `work_dir`:
-
-| Agent | File to create/edit |
-|-------|-------------------|
-| Codex | `AGENTS.md` |
-| Cursor Agent | `.cursorrules` |
-| Qoder CLI | `AGENTS.md` |
-| Gemini CLI | `GEMINI.md` |
-| OpenCode | `OPENCODE.md` |
-| iFlow CLI | `IFLOW.md` |
-
-**Content to add** (copy-paste into the file):
-
-```markdown
-# cf-connect Integration
-
-This project is managed via cf-connect, a bridge to messaging platforms.
-
-## Scheduled tasks (cron)
-When the user asks you to do something on a schedule (e.g. "every day at 6am",
-"every Monday morning"), use the Bash/shell tool to run:
-
-  cf-connect cron add --cron "<min> <hour> <day> <month> <weekday>" --prompt "<task description>" --desc "<short label>"
-
-Environment variables CC_PROJECT and CC_SESSION_KEY are already set — do NOT
-specify --project or --session-key.
-
-Examples:
-  cf-connect cron add --cron "0 6 * * *" --prompt "Collect GitHub trending repos and send a summary" --desc "Daily GitHub Trending"
-  cf-connect cron add --cron "0 9 * * 1" --prompt "Generate a weekly project status report" --desc "Weekly Report"
-
-To list, run, edit, or delete cron jobs:
-  cf-connect cron list
-  cf-connect cron exec <job-id>
-  cf-connect cron edit <job-id> <field> <value>
-  cf-connect cron del <job-id>
-
-Use `cron exec <job-id>` to run an existing scheduled task immediately; this is different from the `--exec <command>` flag used when creating a shell-command cron job.
-Use `cron edit` to modify a single field instead of delete-and-recreate.
-Common editable fields: cron_expr, prompt, exec, description, enabled (true/false), mute (true/false), timeout_mins (int).
-Run `cf-connect cron edit --help` for the full field list.
-
-Examples:
-  cf-connect cron exec abc123
-  cf-connect cron edit abc123 cron_expr "0 9 * * *"
-  cf-connect cron edit abc123 enabled false
-  cf-connect cron edit abc123 prompt "Updated daily summary task"
-
-## Send message to current chat
-To proactively send a message back to the user's chat session (use --stdin heredoc for long/multi-line messages):
-
-  cf-connect send --stdin <<'CCEOF'
-  your message here (any special characters are safe)
-  CCEOF
-
-For short single-line messages:
-
-  cf-connect send -m "short message"
-```
-
-After adding this file, the agent will be able to translate natural language scheduling requests into `cf-connect cron add` commands automatically.
-
-> **Tip:** You may want to add `AGENTS.md` / `.cursorrules` / `GEMINI.md` to your `.gitignore` if you don't want cf-connect instructions committed to version control.
-
-## Multi-Project Setup
-
-A single cf-connect process can manage multiple projects. Each project has its own agent, work directory, and platforms:
-
-```toml
-[[projects]]
-name = "backend"
-
-[projects.agent]
-type = "claudecode"
-
-[projects.agent.options]
-work_dir = "/path/to/backend"
-mode = "default"
-
-[[projects.platforms]]
-type = "feishu"
-
-[projects.platforms.options]
-app_id = "cli_xxx"
-app_secret = "xxx"
-
-# Second project — using Codex
-[[projects]]
-name = "frontend"
-
-[projects.agent]
-type = "codex"
-
-[projects.agent.options]
-work_dir = "/path/to/frontend"
-mode = "full-auto"
-
-[[projects.platforms]]
-type = "telegram"
-
-[projects.platforms.options]
-token = "xxx"
-
-# Third project — using Cursor Agent
-[[projects]]
-name = "design-system"
-
-[projects.agent]
-type = "cursor"
-
-[projects.agent.options]
-work_dir = "/path/to/design-system"
-mode = "force"
-
-[[projects.platforms]]
-type = "discord"
-
-[projects.platforms.options]
-token = "xxx"
-
-# Fourth project — using Gemini CLI
-[[projects]]
-name = "my-gemini-project"
-
-[projects.agent]
-type = "gemini"
-
-[projects.agent.options]
-work_dir = "/path/to/gemini-project"
-mode = "yolo"    # "default" | "auto_edit" | "yolo" | "plan"
-
-[[projects.platforms]]
-type = "slack"
-
-[projects.platforms.options]
-bot_token = "xoxb-xxx"
-app_token = "xapp-xxx"
-
-# Fifth project — using Qoder CLI
-[[projects]]
-name = "my-qoder-project"
-
-[projects.agent]
-type = "qoder"
-
-[projects.agent.options]
-work_dir = "/path/to/qoder-project"
-mode = "default"    # "default" | "yolo"
-# model = "auto"    # "auto" | "ultimate" | "performance" | "efficient" | "lite"
-
-[[projects.platforms]]
-type = "telegram"
-
-[projects.platforms.options]
-token = "xxx"
-
-# Sixth project — using iFlow CLI
-[[projects]]
-name = "my-iflow-project"
-
-[projects.agent]
-type = "iflow"
-
-[projects.agent.options]
-work_dir = "/path/to/iflow-project"
-mode = "default"    # "default" | "auto-edit" | "plan" | "yolo"
-# model = "Qwen3-Coder"
-
-[[projects.platforms]]
-type = "slack"
-
-[projects.platforms.options]
-bot_token = "xoxb-xxx"
-app_token = "xapp-xxx"
-```
-
-## Upgrade
-
-### Check current version
-
-```bash
-cf-connect --version
-```
-
-### npm users
-
-```bash
-npm update -g cf-connect
-```
-
-### Binary users
-
-Check the latest release at https://github.com/ItsQifan/cf-connect/releases and compare with your local version. To upgrade:
-
-```bash
-# Linux/macOS — replace with your platform suffix
-curl -L -o /usr/local/bin/cf-connect https://github.com/ItsQifan/cf-connect/releases/latest/download/cf-connect-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
-chmod +x /usr/local/bin/cf-connect
-```
-
-### Source users
-
-```bash
-cd cf-connect
-git pull
-make build
-```
-
-After upgrading, restart the running cf-connect process.
-
-## Step 8: Run as Background Service (Optional)
-
-You can run cf-connect as a daemon managed by the OS init system (Linux systemd user service, macOS launchd LaunchAgent, Windows Task Scheduler task).
-
-### Install the daemon
-
-```bash
-cf-connect daemon install --config ~/.cf-connect/config.toml
-```
-
-You can also point the daemon at the directory that contains `config.toml`:
-
-```bash
-cf-connect daemon install --work-dir ~/.cf-connect
-```
-
-Optional flags: `--config PATH`, `--log-file PATH`, `--log-max-size N` (MB), `--work-dir DIR`, `--force` (overwrite existing unit). `--config` points to a config file, while `--work-dir` points to the directory containing `config.toml`.
-
-### Linux systemd: Keep service running after SSH disconnect
-
-When installed as a user-level systemd service (non-root), cf-connect runs under `user@UID.service`. By default, systemd stops this service when your last login session ends (e.g., SSH disconnect). This is controlled by the "linger" setting.
-
-To keep cf-connect running persistently, enable linger for your user:
-
-```bash
-sudo loginctl enable-linger $USER
-```
-
-After enabling linger, `user@UID.service` remains active even when you log out. The daemon install command will warn you if linger is not enabled.
-
-Alternatively, you can install as a system-level service (requires root):
-
-```bash
-sudo cf-connect daemon install --config ~/.cf-connect/config.toml
-```
-
-System-level services are independent of login sessions.
-
-### Control the service
-
-```bash
-cf-connect daemon start
-cf-connect daemon stop
-cf-connect daemon restart
+cf-connect daemon install     # 安装并启动（systemd / launchd / schtasks）
 cf-connect daemon status
-```
-
-### View logs
-
-```bash
-cf-connect daemon logs           # tail current log
-cf-connect daemon logs -f         # follow (like tail -f)
-cf-connect daemon logs -n 100     # last 100 lines
-cf-connect daemon logs --log-file /path/to/log  # custom log file
-```
-
-Logs auto-rotate at the configured max size and keep one backup.
-
-On Windows, `daemon install` creates a native Task Scheduler task named `cf-connect`.
-The task runs at user logon and is also started immediately after installation. The
-installer writes a small PowerShell launcher under `~/.cf-connect` so the scheduled
-task uses the selected config directory, log file, PATH, and proxy environment.
-
-### Uninstall
-
-```bash
+cf-connect daemon logs -f
+cf-connect daemon restart
+cf-connect daemon stop
 cf-connect daemon uninstall
 ```
 
-## Additional Features
+日志轮转由服务管理器驱动（`CC_LOG_FILE` + `CC_LOG_MAX_SIZE` + `CC_LOG_MAX_BACKUPS`），
+也可在启动时用 `--log-max-size` / `--log-max-backups` 覆盖。
 
-The following additional features are available:
+### 验证安装
 
-- **Codex Agent**: OpenAI Codex CLI integration (`codex exec --json`)
-- **Cursor Agent**: Cursor Agent CLI integration (`agent --print --output-format stream-json`)
-- **Gemini CLI**: Google Gemini CLI integration (`gemini -p --output-format stream-json`)
-- **Qoder CLI**: Qoder CLI integration (`qodercli -p -f stream-json`)
-- **OpenCode**: OpenCode CLI integration (`opencode run --format json`)
-- **iFlow CLI**: iFlow CLI integration (`iflow -i -r -o`)
-- **Voice Messages (STT)**: Speech-to-text via Whisper API (OpenAI / Groq / SiliconFlow). Requires `ffmpeg` and `[speech]` config.
-- **Voice Reply (TTS)**: Text-to-speech via Qwen / OpenAI / MiniMax / MiMo / local providers. Requires `ffmpeg` and `[tts]` config.
-- **Image Messages**: Send images to Claude Code for multimodal analysis
-- **API Provider Management**: Runtime switching between API providers via `/provider` command or CLI
-- **CLI Send**: `cf-connect send` to inject messages into active sessions from external processes
+```bash
+cf-connect --version              # 版本与构建信息
+cf-connect config path            # 实际使用的配置文件路径
+cf-connect doctor                 # 自检：agent CLI、数据目录、权限
+cf-connect config example         # 打印完整配置模板
+```
 
-## Troubleshooting
+在钉钉里对机器人发 `/whoami` 可以拿到自己的 userid，用来配 `allow_from`。
 
-- **"session already in use"** — A previous Claude Code process may still be running. Use `/new` to start a fresh session.
-- **No response from bot** — Check `cf-connect` logs. Set `level = "debug"` in `[log]` for verbose output.
-- **WeChat Work can't send messages** — Ensure your outbound IP is in the Trusted IP whitelist. If using a proxy, check the proxy is reachable.
-- **LINE/WeChat Work can't receive messages** — Ensure your webhook URL is publicly accessible (ngrok/cloudflared running).
-- **macOS binary won't open** — Run `xattr -d com.apple.quarantine cf-connect` to remove quarantine flag.
+---
+
+## 5. 升级
+
+自更新功能已移除，升级 = 换新压缩包：
+
+```bash
+cf-connect daemon stop
+# 备份 config.toml 与 ~/.cf-connect/
+# 用新压缩包覆盖解压到同一目录（压缩包内没有 config.toml，不会被覆盖）
+cf-connect daemon start
+cf-connect --version
+```
+
+---
+
+## 6. 卸载
+
+```bash
+cf-connect daemon stop
+cf-connect daemon uninstall
+# 删除解压目录；如需彻底清理，再删数据目录：
+#   Windows:     %USERPROFILE%\.cf-connect
+#   macOS/Linux: ~/.cf-connect
+```
+
+若执行过 `install.ps1`，记得同时撤销 PATH 项（见 2.2）。
+
+---
+
+## 7. 多项目与多人部署
+
+一个进程可以管理多个项目：重复 `[[projects]]` 块即可，每个项目有独立的 `work_dir`
+与 agent 会话。同一份配置不会被重复启动（有实例锁保护），需要强杀旧实例时用 `--force`。
+
+推荐落地方式：**每人部署自己的一套**（各自的钉钉应用凭证 + 各自的 CodeFree-O 登录），
+互不影响、额度各算各的。
+
+---
+
+## 8. 故障排查
+
+见 [QUICKSTART.md 的排障章节](./QUICKSTART.md#4-排障)，以及：
+
+```bash
+cf-connect doctor                # 一键自检
+cf-connect daemon logs -n 200    # 最近的日志
+```
+
+---
+
+## 9. 进一步阅读
+
+| 文档 | 内容 |
+|---|---|
+| [QUICKSTART.md](./QUICKSTART.md) | 3 步上手 + 排障 |
+| [docs/dingtalk.md](./docs/dingtalk.md) | 钉钉适配器（AI 卡片、媒体、引用） |
+| [docs/usage.md](./docs/usage.md) | 命令与功能用法 |
+| [docs/management-api.md](./docs/management-api.md) | 管理 API |
+| [docs/bridge-protocol.md](./docs/bridge-protocol.md) | Bridge 协议 |
+| [AGENTS.md](./AGENTS.md) | 开发约定 |
