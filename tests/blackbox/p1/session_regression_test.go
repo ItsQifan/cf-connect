@@ -23,12 +23,12 @@ import (
 
 func TestP1_30_HistorySessionsVisible_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testHistorySessionsVisible(t, "claudecode")
+	testHistorySessionsVisible(t, "opencode")
 }
 
 func TestP1_30_HistorySessionsVisible_Codex(t *testing.T) {
 	t.Parallel()
-	testHistorySessionsVisible(t, "codex")
+	testHistorySessionsVisible(t, "opencode")
 }
 
 func testHistorySessionsVisible(t *testing.T, agentType string) {
@@ -53,12 +53,12 @@ func testHistorySessionsVisible(t *testing.T, agentType string) {
 
 func TestP1_31_NewThenListComplete_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testNewThenListComplete(t, "claudecode")
+	testNewThenListComplete(t, "opencode")
 }
 
 func TestP1_31_NewThenListComplete_Codex(t *testing.T) {
 	t.Parallel()
-	testNewThenListComplete(t, "codex")
+	testNewThenListComplete(t, "opencode")
 }
 
 func testNewThenListComplete(t *testing.T, agentType string) {
@@ -83,12 +83,12 @@ func testNewThenListComplete(t *testing.T, agentType string) {
 
 func TestP1_32_NewWithNaming_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testNewWithNaming(t, "claudecode")
+	testNewWithNaming(t, "opencode")
 }
 
 func TestP1_32_NewWithNaming_Codex(t *testing.T) {
 	t.Parallel()
-	testNewWithNaming(t, "codex")
+	testNewWithNaming(t, "opencode")
 }
 
 func testNewWithNaming(t *testing.T, agentType string) {
@@ -110,12 +110,12 @@ func testNewWithNaming(t *testing.T, agentType string) {
 
 func TestP1_33_NameRename_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testNameRename(t, "claudecode")
+	testNameRename(t, "opencode")
 }
 
 func TestP1_33_NameRename_Codex(t *testing.T) {
 	t.Parallel()
-	testNameRename(t, "codex")
+	testNameRename(t, "opencode")
 }
 
 func testNameRename(t *testing.T, agentType string) {
@@ -138,12 +138,12 @@ func testNameRename(t *testing.T, agentType string) {
 
 func TestP1_34_SwitchPreservesAllSessions_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testSwitchPreservesAllSessions(t, "claudecode")
+	testSwitchPreservesAllSessions(t, "opencode")
 }
 
 func TestP1_34_SwitchPreservesAllSessions_Codex(t *testing.T) {
 	t.Parallel()
-	testSwitchPreservesAllSessions(t, "codex")
+	testSwitchPreservesAllSessions(t, "opencode")
 }
 
 func testSwitchPreservesAllSessions(t *testing.T, agentType string) {
@@ -169,12 +169,12 @@ func testSwitchPreservesAllSessions(t *testing.T, agentType string) {
 
 func TestP1_35_DeleteOnlyRemovesTarget_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testDeleteOnlyRemovesTarget(t, "claudecode")
+	testDeleteOnlyRemovesTarget(t, "opencode")
 }
 
 func TestP1_35_DeleteOnlyRemovesTarget_Codex(t *testing.T) {
 	t.Parallel()
-	testDeleteOnlyRemovesTarget(t, "codex")
+	testDeleteOnlyRemovesTarget(t, "opencode")
 }
 
 func testDeleteOnlyRemovesTarget(t *testing.T, agentType string) {
@@ -207,12 +207,12 @@ func testDeleteOnlyRemovesTarget(t *testing.T, agentType string) {
 
 func TestP1_37_ListAfterReplyStable_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testListAfterReplyStable(t, "claudecode")
+	testListAfterReplyStable(t, "opencode")
 }
 
 func TestP1_37_ListAfterReplyStable_Codex(t *testing.T) {
 	t.Parallel()
-	testListAfterReplyStable(t, "codex")
+	testListAfterReplyStable(t, "opencode")
 }
 
 func testListAfterReplyStable(t *testing.T, agentType string) {
@@ -242,7 +242,7 @@ func testListAfterReplyStable(t *testing.T, agentType string) {
 
 func TestP1_39_RestartPreservesNames_ClaudeCode(t *testing.T) {
 	// Not parallel — involves engine stop/restart.
-	testRestartPreservesNames(t, "claudecode")
+	testRestartPreservesNames(t, "opencode")
 }
 
 func testRestartPreservesNames(t *testing.T, agentType string) {

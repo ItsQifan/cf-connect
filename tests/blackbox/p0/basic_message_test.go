@@ -33,12 +33,12 @@ import (
 // This is the most fundamental P0 test. If this fails, nothing else matters.
 func TestP0_1_BasicMessageFlow_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testBasicMessageFlow(t, "claudecode")
+	testBasicMessageFlow(t, "opencode")
 }
 
 func TestP0_1_BasicMessageFlow_Codex(t *testing.T) {
 	t.Parallel()
-	testBasicMessageFlow(t, "codex")
+	testBasicMessageFlow(t, "opencode")
 }
 
 // TestP0_1_BasicMessageFlow_Cursor tests the cursor agent (agent binary,
@@ -48,7 +48,7 @@ func TestP0_1_BasicMessageFlow_Codex(t *testing.T) {
 // for CI (e.g. "claude-haiku-3-5-20241022").
 func TestP0_1_BasicMessageFlow_Cursor(t *testing.T) {
 	t.Parallel()
-	testBasicMessageFlow(t, "cursor")
+	testBasicMessageFlow(t, "opencode")
 }
 
 // TestP0_1_BasicMessageFlow_OpenCode tests the opencode agent (opencode binary).
@@ -81,7 +81,7 @@ func testBasicMessageFlow(t *testing.T, agentType string) {
 // cc-connect sends a confirmation message.
 func TestP0_2_NewSession_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testNewSession(t, "claudecode")
+	testNewSession(t, "opencode")
 }
 
 func testNewSession(t *testing.T, agentType string) {
@@ -108,7 +108,7 @@ func testNewSession(t *testing.T, agentType string) {
 // session information after at least one session has been created.
 func TestP0_3_ListSessions_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testListSessions(t, "claudecode")
+	testListSessions(t, "opencode")
 }
 
 func testListSessions(t *testing.T, agentType string) {
@@ -146,7 +146,7 @@ func testListSessions(t *testing.T, agentType string) {
 // which still confirms the command is handled.
 func TestP0_5_StopCurrentTask_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testStop(t, "claudecode")
+	testStop(t, "opencode")
 }
 
 func testStop(t *testing.T, agentType string) {

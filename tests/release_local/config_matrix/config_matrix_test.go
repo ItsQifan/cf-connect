@@ -27,13 +27,13 @@ data_dir = "` + filepath.ToSlash(os.TempDir()) + `/cc-connect-release-test"
 name = "release"
 
 [projects.agent]
-type = "claudecode"
+type = "opencode"
 work_dir = "/tmp/cc-connect-release-work"
 
 [[projects.platforms]]
-type = "feishu"
-app_id = "cli_release"
-app_secret = "secret"
+type = "dingtalk"
+client_id = "cli_release"
+client_secret = "secret"
 `
 }
 
@@ -60,13 +60,13 @@ thinking_max_len = 111
 tool_max_len = 222
 
 [projects.agent]
-type = "claudecode"
+type = "opencode"
 work_dir = "/tmp/cc-connect-release-work"
 
 [[projects.platforms]]
-type = "feishu"
-app_id = "cli_release"
-app_secret = "secret"
+type = "dingtalk"
+client_id = "cli_release"
+client_secret = "secret"
 `)
 
 	cfg, err := config.Load(path)
@@ -124,7 +124,7 @@ func TestReleaseConfig_BehaviorControlSwitchesParseFromLoadedConfig(t *testing.T
 	path := writeConfig(t, `
 [stream_preview]
 enabled = false
-disabled_platforms = ["feishu", "telegram"]
+disabled_platforms = ["dingtalk"]
 interval_ms = 250
 min_delta_chars = 12
 max_chars = 777
@@ -142,13 +142,13 @@ thinking_messages = false
 tool_messages = false
 
 [projects.agent]
-type = "claudecode"
+type = "opencode"
 work_dir = "/tmp/cc-connect-release-work"
 
 [[projects.platforms]]
-type = "feishu"
-app_id = "cli_release"
-app_secret = "secret"
+type = "dingtalk"
+client_id = "cli_release"
+client_secret = "secret"
 `)
 
 	cfg, err := config.Load(path)
@@ -158,7 +158,7 @@ app_secret = "secret"
 	if cfg.StreamPreview.Enabled == nil || *cfg.StreamPreview.Enabled {
 		t.Fatalf("stream_preview.enabled = %#v, want false", cfg.StreamPreview.Enabled)
 	}
-	if got := strings.Join(cfg.StreamPreview.DisabledPlatforms, ","); got != "feishu,telegram" {
+	if got := strings.Join(cfg.StreamPreview.DisabledPlatforms, ","); got != "dingtalk" {
 		t.Fatalf("stream_preview.disabled_platforms = %#v", cfg.StreamPreview.DisabledPlatforms)
 	}
 	if cfg.StreamPreview.IntervalMs == nil || *cfg.StreamPreview.IntervalMs != 250 {
@@ -213,13 +213,13 @@ name = "release"
 mode = "verbose"
 
 [projects.agent]
-type = "claudecode"
+type = "opencode"
 work_dir = "/tmp/cc-connect-release-work"
 
 [[projects.platforms]]
-type = "feishu"
-app_id = "cli_release"
-app_secret = "secret"
+type = "dingtalk"
+client_id = "cli_release"
+client_secret = "secret"
 `,
 			wantErr: `projects[0].display.mode must be "full", "compact", or "quiet"`,
 		},
@@ -231,13 +231,13 @@ name = "release"
 reset_on_idle_mins = -1
 
 [projects.agent]
-type = "claudecode"
+type = "opencode"
 work_dir = "/tmp/cc-connect-release-work"
 
 [[projects.platforms]]
-type = "feishu"
-app_id = "cli_release"
-app_secret = "secret"
+type = "dingtalk"
+client_id = "cli_release"
+client_secret = "secret"
 `,
 			wantErr: "reset_on_idle_mins must be >= 0",
 		},

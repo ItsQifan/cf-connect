@@ -30,7 +30,7 @@ const cmdTimeout = 30 * time.Second // engine-handled commands are near-instant
 
 func TestP1_1_Help_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/help", cmdTimeout)
 	assertContainsAny(t, "P1-1 /help", reply.Text(),
 		"/new", "/list", "/stop", "/help", "Available", "命令", "Command")
@@ -41,7 +41,7 @@ func TestP1_1_Help_ClaudeCode(t *testing.T) {
 
 func TestP1_5_Current_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	env.Send("say hi briefly")
 
 	reply := env.SendWithTimeout("/current", cmdTimeout)
@@ -54,7 +54,7 @@ func TestP1_5_Current_ClaudeCode(t *testing.T) {
 
 func TestP1_7_Name_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	env.Send("say hi briefly")
 
 	const newName = "blackbox-rename-test"
@@ -71,7 +71,7 @@ func TestP1_7_Name_ClaudeCode(t *testing.T) {
 
 func TestP1_4_Switch_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	env.Send("say hi briefly")
 	env.SendWithTimeout("/new", cmdTimeout)
@@ -92,7 +92,7 @@ func TestP1_4_Switch_ClaudeCode(t *testing.T) {
 
 func TestP1_6_Delete_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	env.Send("say hi briefly")
 	env.SendWithTimeout("/new", cmdTimeout)
@@ -113,10 +113,10 @@ func TestP1_6_Delete_ClaudeCode(t *testing.T) {
 
 func TestP1_9_Status_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/status", cmdTimeout)
 	assertContainsAny(t, "P1-9 /status", strings.ToLower(reply.Text()),
-		"agent", "project", "session", "claudecode", "状态")
+		"agent", "project", "session", "opencode", "状态")
 	t.Logf("P1-9 OK: %q", truncate(reply.Text(), 200))
 }
 
@@ -124,7 +124,7 @@ func TestP1_9_Status_ClaudeCode(t *testing.T) {
 
 func TestP1_10_Version_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/version", cmdTimeout)
 	// VersionInfo is set by main at startup; in tests it's empty string "".
 	// The command must still produce a reply (even if content is empty in tests),
@@ -141,7 +141,7 @@ func TestP1_10_Version_ClaudeCode(t *testing.T) {
 
 func TestP1_14_MessageQueuing_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	// Fire 3 messages rapidly while the agent may still be starting.
 	env.Platform.InjectMessage(helper.DefaultUser, helper.DefaultChat, "reply with only the word: FIRST")

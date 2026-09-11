@@ -21,6 +21,10 @@ import (
 
 func init() {
 	core.RegisterAgent("opencode", New)
+	// codefree-o is a downstream opencode build that keeps its own data and
+	// config directories. It speaks the same CLI contract, so it can be driven
+	// by this adapter under its own name.
+	core.RegisterAgent("codefree-o", New)
 }
 
 // Agent drives the OpenCode CLI in headless mode using `opencode run --format json`.
@@ -36,6 +40,10 @@ type Agent struct {
 	cliExtraArgs         []string // extra args from cmd after the binary name
 	configEnv            []string // env vars from [projects.agent.options.env]
 	agentName            string // passed as --agent to opencode (for plugin-defined agents)
+	permissionFlag       string // appended in yolo mode; see resolvePermissionFlag
+	dataDir              string // explicit data dir override for codefree.db discovery
+	dbFile               string // explicit db filename override (implies dataDir)
+	globalMemoryFile     string // explicit global instruction file override
 	providers            []core.ProviderConfig
 	activeIdx            int
 	sessionEnv           []string
@@ -71,6 +79,11 @@ func New(opts map[string]any) (core.Agent, error) {
 	mode = normalizeMode(mode)
 	cmd, extraArgs := core.ParseCmdOpts(opts, "opencode")
 	agentName, _ := opts["agent"].(string) // --agent flag for plugin-defined agents (#1210)
+	permissionFlagOpt, _ := opts["permission_flag"].(string)
+	permissionFlag := resolvePermissionFlag(permissionFlagOpt)
+	dataDir, _ := opts["data_dir"].(string)
+	dbFile, _ := opts["db_file"].(string)
+	globalMemoryFile, _ := opts["global_memory_file"].(string)
 	ccDataDir, _ := opts["cc_data_dir"].(string)
 	ccProject, _ := opts["cc_project"].(string)
 	modelCachePath := opencodeProjectModelCachePath(ccDataDir, ccProject)
@@ -91,6 +104,10 @@ func New(opts map[string]any) (core.Agent, error) {
 		cliExtraArgs:         extraArgs,
 		configEnv:            core.ParseConfigEnv(opts),
 		agentName:            agentName,
+		permissionFlag:       permissionFlag,
+		dataDir:              dataDir,
+		dbFile:               dbFile,
+		globalMemoryFile:     globalMemoryFile,
 		activeIdx:            -1,
 		modelCachePath:       modelCachePath,
 		persistentModelCache: persistentModelCache,
@@ -183,6 +200,38 @@ func normalizeModelOptions(models []core.ModelOption) []core.ModelOption {
 		return normalized[i].Name < normalized[j].Name
 	})
 	return normalized
+}
+
+// DefaultPermissionFlag is the flag appended in yolo mode when the
+// `permission_flag` agent option is not set.
+//
+// `--auto` is understood both by upstream opencode (>= 1.18) and by
+// codefree-o. The historical `--dangerously-skip-permissions` spelling only
+// exists on older opencode builds, so it is no longer hardcoded; deployments
+// that still run such a build can opt back in via
+// [projects.agent.options] permission_flag = "--dangerously-skip-permissions".
+const DefaultPermissionFlag = "--auto"
+
+// permissionFlagNone disables the yolo flag entirely (yolo then behaves like
+// default with respect to CLI arguments).
+const permissionFlagNone = "none"
+
+// resolvePermissionFlag maps the `permission_flag` option onto the flag that
+// yolo mode should append. It returns "" when no flag should be appended.
+//
+// Accepted values:
+//   - "" (unset)                    -> DefaultPermissionFlag ("--auto")
+//   - any flag string               -> that string verbatim
+//   - "none" / "off" / "-"          -> no flag
+func resolvePermissionFlag(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "":
+		return DefaultPermissionFlag
+	case permissionFlagNone, "off", "-":
+		return ""
+	default:
+		return strings.TrimSpace(raw)
+	}
 }
 
 func normalizeMode(raw string) string {
@@ -468,6 +517,7 @@ func (a *Agent) StartSession(ctx context.Context, sessionID string) (core.AgentS
 	extraArgs := append([]string{}, a.cliExtraArgs...)
 	workDir := a.workDir
 	agentName := a.agentName
+	permissionFlag := a.permissionFlag
 	extraEnv := append([]string(nil), a.configEnv...)
 	extraEnv = append(extraEnv, a.providerEnvLocked()...)
 	extraEnv = append(extraEnv, a.sessionEnv...)
@@ -478,7 +528,16 @@ func (a *Agent) StartSession(ctx context.Context, sessionID string) (core.AgentS
 	}
 	a.mu.Unlock()
 
-	return newOpencodeSession(ctx, cmd, extraArgs, workDir, model, mode, agentName, sessionID, extraEnv)
+	return newOpencodeSession(ctx, cmd, extraArgs, workDir, model, mode, agentName, permissionFlag, sessionID, extraEnv)
+}
+
+// dbSource returns the session-database resolution inputs for this agent
+// (patch 2: resolve opencode.db vs codefree.db by binary brand, with optional
+// explicit overrides).
+func (a *Agent) dbSource() sessionDBSource {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return sessionDBSource{cmd: a.cmd, dataDir: a.dataDir, dbFile: a.dbFile}
 }
 
 // ListSessions runs `opencode session list` and parses the JSON output.
@@ -487,7 +546,7 @@ func (a *Agent) ListSessions(_ context.Context) ([]core.AgentSessionInfo, error)
 	cmd := a.cmd
 	workDir := a.workDir
 	a.mu.RUnlock()
-	return listOpencodeSessions(cmd, workDir)
+	return listOpencodeSessions(cmd, workDir, a.dbSource())
 }
 
 func (a *Agent) Stop() error { return nil }
@@ -546,12 +605,72 @@ func (a *Agent) ProjectMemoryFile() string {
 	return filepath.Join(absDir, "OPENCODE.md")
 }
 
+// GlobalMemoryFile returns the user-level instruction file the agent reads.
+//
+// Precedence (patch 3):
+//  1. explicit `global_memory_file` agent option
+//  2. the first existing candidate for the configured CLI brand
+//  3. the opencode default (~/.opencode/OPENCODE.md)
+//
+// codefree-o keeps its configuration under ~/.codefree-o/.config, so the
+// upstream opencode path would silently point at a file the CLI never reads.
 func (a *Agent) GlobalMemoryFile() string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
+	a.mu.RLock()
+	explicit := a.globalMemoryFile
+	cmd := a.cmd
+	a.mu.RUnlock()
+
+	if f := strings.TrimSpace(explicit); f != "" {
+		return f
+	}
+
+	home := homeDir()
+	if home == "" {
 		return ""
 	}
-	return filepath.Join(homeDir, ".opencode", "OPENCODE.md")
+
+	for _, candidate := range globalMemoryCandidates(cmd, home) {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return candidate
+		}
+	}
+	return filepath.Join(home, ".opencode", "OPENCODE.md")
+}
+
+// globalMemoryCandidates lists brand-appropriate global instruction files in
+// preference order.
+func globalMemoryCandidates(cmd, home string) []string {
+	if isCodefreeCmd(cmd) {
+		return []string{
+			filepath.Join(home, ".codefree-o", ".config", "OPENCODE.md"),
+			filepath.Join(home, ".codefree-o", ".config", "AGENTS.md"),
+		}
+	}
+	return []string{
+		filepath.Join(home, ".opencode", "OPENCODE.md"),
+	}
+}
+
+// -- AgentDoctorInfo --
+
+// CLIBinaryName reports the configured CLI binary so `cf-connect doctor`
+// inspects the binary actually in use (opencode vs codefree-o) rather than a
+// hardcoded default.
+func (a *Agent) CLIBinaryName() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.cmd == "" {
+		return "opencode"
+	}
+	return filepath.Base(a.cmd)
+}
+
+// CLIDisplayName is the human-readable CLI name shown by `cf-connect doctor`.
+func (a *Agent) CLIDisplayName() string {
+	if isCodefreeCmd(a.CLIBinaryName()) {
+		return "CodeFree-O"
+	}
+	return "OpenCode"
 }
 
 // -- ProviderSwitcher --
@@ -623,7 +742,7 @@ type opencodeSessionEntry struct {
 	Created int64  `json:"created"`
 }
 
-func listOpencodeSessions(cmd, workDir string) ([]core.AgentSessionInfo, error) {
+func listOpencodeSessions(cmd, workDir string, dbSrc sessionDBSource) ([]core.AgentSessionInfo, error) {
 	c := exec.Command(cmd, "session", "list", "--format", "json")
 	c.Dir = workDir
 
@@ -637,7 +756,7 @@ func listOpencodeSessions(cmd, workDir string) ([]core.AgentSessionInfo, error) 
 		return nil, fmt.Errorf("opencode: parse session list: %w", err)
 	}
 
-	msgCounts := querySessionMessageCounts()
+	msgCounts := querySessionMessageCounts(dbSrc)
 
 	var sessions []core.AgentSessionInfo
 	for _, e := range entries {
@@ -652,76 +771,6 @@ func listOpencodeSessions(cmd, workDir string) ([]core.AgentSessionInfo, error) 
 	return sessions, nil
 }
 
-// querySessionMessageCounts uses the sqlite3 CLI to read message counts from
-// OpenCode's local database. Returns an empty map on any failure.
-func querySessionMessageCounts() map[string]int {
-	dbPath := opencodeDBPath()
-	if dbPath == "" {
-		return nil
-	}
-	if _, err := os.Stat(dbPath); err != nil {
-		return nil
-	}
-	sqlite3, err := exec.LookPath("sqlite3")
-	if err != nil {
-		slog.Warn("opencode: sqlite3 CLI not found, message counts unavailable", "err", err)
-		return nil
-	}
-
-	out, err := exec.Command(sqlite3, dbPath,
-		"SELECT session_id, COUNT(*) FROM message GROUP BY session_id").Output()
-	if err != nil {
-		slog.Warn("opencode: sqlite3 query failed", "db_path", dbPath, "err", err)
-		return nil
-	}
-
-	counts := make(map[string]int)
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		parts := strings.SplitN(line, "|", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		var n int
-		if _, err := fmt.Sscanf(parts[1], "%d", &n); err == nil {
-			counts[parts[0]] = n
-		}
-	}
-	return counts
-}
-
-func opencodeDBPath() string {
-	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
-		return filepath.Join(xdg, "opencode", "opencode.db")
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".local", "share", "opencode", "opencode.db")
-}
-
 func (a *Agent) GetSessionTitle(sessionID string) string {
-	return querySessionTitle(sessionID)
-}
-
-func querySessionTitle(sessionID string) string {
-	dbPath := opencodeDBPath()
-	if dbPath == "" {
-		return ""
-	}
-	if _, err := os.Stat(dbPath); err != nil {
-		return ""
-	}
-	sqlite3, err := exec.LookPath("sqlite3")
-	if err != nil {
-		return ""
-	}
-	escaped := strings.ReplaceAll(sessionID, "'", "''")
-	query := fmt.Sprintf("SELECT title FROM session WHERE id = '%s' LIMIT 1", escaped)
-	out, err := exec.Command(sqlite3, dbPath, query).Output()
-	if err != nil {
-		return ""
-	}
-	title := strings.TrimSpace(string(out))
-	return title
+	return querySessionTitle(a.dbSource(), sessionID)
 }

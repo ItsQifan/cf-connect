@@ -16,7 +16,7 @@ import (
 // A real agent calling real tools is the only way to verify this end-to-end.
 func TestP0_14_ToolInvocation_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testToolInvocation(t, "claudecode")
+	testToolInvocation(t, "opencode")
 }
 
 func testToolInvocation(t *testing.T, agentType string) {
@@ -60,7 +60,7 @@ func testToolInvocation(t *testing.T, agentType string) {
 // produce a substantive response (≥ 200 chars total).
 func TestP0_15_LongResponse_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testLongResponse(t, "claudecode")
+	testLongResponse(t, "opencode")
 }
 
 func testLongResponse(t *testing.T, agentType string) {

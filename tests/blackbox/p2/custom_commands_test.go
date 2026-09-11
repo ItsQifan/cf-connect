@@ -25,7 +25,7 @@ import (
 // lifecycle: add → list → invoke → delete → verify deleted.
 func TestP2_63_65_66_CustomCommandLifecycle_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	const cmdName = "bb-test-cmd"
 	const cmdPrompt = "Say the word BLACKBOX_MARKER"
@@ -67,7 +67,7 @@ func TestP2_63_65_66_CustomCommandLifecycle_ClaudeCode(t *testing.T) {
 // verifying its output arrives correctly.
 func TestP2_67_68_ExecCommandLifecycle_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	const execName = "bb-exec-test"
 
@@ -96,7 +96,7 @@ func TestP2_67_68_ExecCommandLifecycle_ClaudeCode(t *testing.T) {
 // TestP2_69_70_AliasLifecycle tests adding and removing an alias.
 func TestP2_69_70_AliasLifecycle_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	// P2-69: add alias "bbhelp" → "/help".
 	addReply := env.SendWithTimeout("/alias add bbhelp /help", p2CmdTimeout)

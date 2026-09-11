@@ -32,16 +32,16 @@ func TestSmoke_ConfigLoading(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 
 	configContent := `
-data_dir = "~/.cc-connect"
+data_dir = "~/.cf-connect"
 
 [[projects]]
 name = "test-project"
 
 [projects.agent]
-type = "claudecode"
+type = "opencode"
 
 [[projects.platforms]]
-type = "feishu"
+type = "dingtalk"
 
 [log]
 level = "info"
@@ -55,10 +55,10 @@ level = "info"
 	require.NoError(t, err)
 
 	// Verify basic config fields
-	assert.Equal(t, "~/.cc-connect", cfg.DataDir)
+	assert.Equal(t, "~/.cf-connect", cfg.DataDir)
 	assert.Len(t, cfg.Projects, 1)
 	assert.Equal(t, "test-project", cfg.Projects[0].Name)
-	assert.Equal(t, "claudecode", cfg.Projects[0].Agent.Type)
+	assert.Equal(t, "opencode", cfg.Projects[0].Agent.Type)
 
 	t.Log("Config loading: PASS")
 }
@@ -121,8 +121,7 @@ func listRegisteredAgents() []string {
 	// This requires access to the internal registry
 	// We'll test via the factory pattern
 	agents := []string{
-		"claudecode", "codex", "cursor", "gemini",
-		"iflow", "opencode", "pi", "qoder",
+		"opencode", "codefree-o",
 	}
 	return agents
 }
@@ -160,8 +159,7 @@ func TestSmoke_AllPlatformsInit(t *testing.T) {
 
 func listRegisteredPlatforms() []string {
 	platforms := []string{
-		"feishu", "telegram", "discord", "slack",
-		"dingtalk", "wecom", "qq", "qqbot", "line",
+		"dingtalk",
 	}
 	return platforms
 }
@@ -397,12 +395,12 @@ func TestSmoke_WorkspaceSwitch(t *testing.T) {
 	ws1 := map[string]string{
 		"id":      "workspace-1",
 		"session": "session-A",
-		"agent":   "claudecode",
+		"agent":   "opencode",
 	}
 	ws2 := map[string]string{
 		"id":      "workspace-2",
 		"session": "session-B",
-		"agent":   "gemini",
+		"agent":   "opencode",
 	}
 
 	assert.Equal(t, "workspace-1", ws1["id"])

@@ -42,7 +42,7 @@ const cfgCmdTimeout = 30 * time.Second
 // engine before it reaches the agent. This test is FAST — no agent API call.
 func TestP2_81_DisabledCommands(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetDisabledCommands([]string{"help", "restart", "shell"})
 	})
 
@@ -75,7 +75,7 @@ func TestP2_81_DisabledCommands(t *testing.T) {
 func TestP2_82_BannedWords(t *testing.T) {
 	t.Parallel()
 	const bannedWord = "XBLACKBOXBANWORD"
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetBannedWords([]string{bannedWord})
 	})
 
@@ -106,7 +106,7 @@ func TestP2_82_BannedWords(t *testing.T) {
 // case-insensitive (lowercase config word, uppercase in message).
 func TestP2_82b_BannedWordsCaseInsensitive(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		// Register the word in lowercase.
 		e.SetBannedWords([]string{"casetest_banned"})
 	})
@@ -128,7 +128,7 @@ func TestP2_82b_BannedWordsCaseInsensitive(t *testing.T) {
 // a few messages first to build up token history.
 func TestP2_71_HideContextIndicator_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetShowContextIndicator(false)
 	})
 
@@ -154,7 +154,7 @@ func TestP2_71_HideContextIndicator_ClaudeCode(t *testing.T) {
 func TestP2_71b_ShowContextIndicator_ClaudeCode(t *testing.T) {
 	t.Parallel()
 	// Default env: show_context_indicator = true
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	// Send multiple turns to push token count above the 100-token threshold.
 	// The indicator appears when input_tokens >= 100.
@@ -185,7 +185,7 @@ func TestP2_71b_ShowContextIndicator_ClaudeCode(t *testing.T) {
 // SLOW — requires agent with thinking enabled (complex question).
 func TestP2_78_HideThinkingMessages_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetDisplayConfig(core.DisplayCfg{
 			Mode:             "full",
 			CardMode:         "legacy",
@@ -220,7 +220,7 @@ func TestP2_78_HideThinkingMessages_ClaudeCode(t *testing.T) {
 // SLOW — requires a real agent that calls a tool.
 func TestP2_79_HideToolMessages_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetDisplayConfig(core.DisplayCfg{
 			Mode:             "full",
 			CardMode:         "legacy",
@@ -262,7 +262,7 @@ func TestP2_79_HideToolMessages_ClaudeCode(t *testing.T) {
 // SLOW — requires agent turn.
 func TestP2_77_DisplayModeCompact_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetDisplayConfig(core.DisplayCfg{
 			Mode:             "compact", // ← key config
 			CardMode:         "legacy",
@@ -295,7 +295,7 @@ func TestP2_77_DisplayModeCompact_ClaudeCode(t *testing.T) {
 // does not suppress the final reply.
 func TestP2_80_StreamPreviewDisabled_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetStreamPreviewCfg(core.StreamPreviewCfg{
 			Enabled:       false,
 			IntervalMs:    1500,
@@ -322,7 +322,7 @@ func TestP2_80_StreamPreviewDisabled_ClaudeCode(t *testing.T) {
 // assistant reply should have no trailing metadata line.
 func TestP2_86_HideReplyFooter_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetReplyFooterEnabled(false)
 		e.SetShowContextIndicator(false) // also hide ctx
 	})
@@ -355,7 +355,7 @@ func TestP2_86_HideReplyFooter_ClaudeCode(t *testing.T) {
 // the flag doesn't hide sessions WE created.
 func TestP1_40_FilterExternalSessions_Default_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetFilterExternalSessions(false) // explicit default
 	})
 
@@ -379,7 +379,7 @@ func TestP1_40_FilterExternalSessions_Default_ClaudeCode(t *testing.T) {
 func TestInstantReply_ClaudeCode(t *testing.T) {
 	t.Parallel()
 	const marker = "🤔 Working on it..."
-	env := helper.NewEnvWithSetup(t, "claudecode", func(e *core.Engine) {
+	env := helper.NewEnvWithSetup(t, "opencode", func(e *core.Engine) {
 		e.SetInstantReply(core.InstantReplyCfg{
 			Enabled: true,
 			Content: marker,

@@ -29,7 +29,7 @@ const p2CmdTimeout = 30 * time.Second
 
 func TestP2_41_Whoami_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/whoami", p2CmdTimeout)
 	// Should contain the user ID we injected ("user1") or user name.
 	assertContainsAny(t, "P2-41 /whoami", reply.Text(),
@@ -41,7 +41,7 @@ func TestP2_41_Whoami_ClaudeCode(t *testing.T) {
 
 func TestP2_45_AgentSid_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	// /agent-sid requires an active session first.
 	env.Send("say hi briefly")
@@ -61,7 +61,7 @@ func TestP2_45_AgentSid_ClaudeCode(t *testing.T) {
 
 func TestP2_38_Skills_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/skills", p2CmdTimeout)
 	assertContainsAny(t, "P2-38 /skills", strings.ToLower(reply.Text()),
 		"skill", "no skill", "没有", "available", "技能")
@@ -72,7 +72,7 @@ func TestP2_38_Skills_ClaudeCode(t *testing.T) {
 
 func TestP2_56_CronList_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/cron list", p2CmdTimeout)
 	assertContainsAny(t, "P2-56 /cron list", strings.ToLower(reply.Text()),
 		"cron", "job", "task", "schedule", "no cron", "没有", "定时")
@@ -81,7 +81,7 @@ func TestP2_56_CronList_ClaudeCode(t *testing.T) {
 
 func TestP2_57_CronAdd_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	// Add a cron job.
 	addReply := env.SendWithTimeout(
@@ -105,7 +105,7 @@ func TestP2_57_CronAdd_ClaudeCode(t *testing.T) {
 
 func TestP2_40_Quiet_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/quiet", p2CmdTimeout)
 	assertContainsAny(t, "P2-40 /quiet", strings.ToLower(reply.Text()),
 		"quiet", "silent", "mode", "安静", "模式", "enabled", "disabled", "on", "off")
@@ -116,7 +116,7 @@ func TestP2_40_Quiet_ClaudeCode(t *testing.T) {
 
 func TestP2_39_Effort_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/effort high", p2CmdTimeout)
 	assertContainsAny(t, "P2-39 /effort high", strings.ToLower(reply.Text()),
 		"effort", "high", "reasoning", "思考", "努力", "switched", "changed", "not supported", "支持")
@@ -127,7 +127,7 @@ func TestP2_39_Effort_ClaudeCode(t *testing.T) {
 
 func TestP2_46_Search_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 
 	// Create a session with a known keyword.
 	env.Send("the keyword is XYZZY42")
@@ -162,7 +162,7 @@ func TestP2_61_AllowFromDocumented(t *testing.T) {
 
 func TestP2_47_Bind_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	env := helper.NewEnv(t, "claudecode")
+	env := helper.NewEnv(t, "opencode")
 	reply := env.SendWithTimeout("/bind setup", p2CmdTimeout)
 	assertContainsAny(t, "P2-47 /bind setup", strings.ToLower(reply.Text()),
 		"bind", "relay", "setup", "绑定", "不支持", "not supported", "project")

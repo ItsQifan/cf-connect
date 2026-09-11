@@ -30,6 +30,7 @@ type opencodeSession struct {
 	model             string
 	mode              string
 	agentName         string
+	permissionFlag    string // appended in yolo mode ("" = append nothing)
 	extraEnv          []string
 	events            chan core.Event
 	chatID            atomic.Value // stores string — OpenCode session ID
@@ -41,20 +42,21 @@ type opencodeSession struct {
 	resultSent        atomic.Bool // true when EventResult has been sent for this turn
 }
 
-func newOpencodeSession(ctx context.Context, cmd string, extraArgs []string, workDir, model, mode, agentName, resumeID string, extraEnv []string) (*opencodeSession, error) {
+func newOpencodeSession(ctx context.Context, cmd string, extraArgs []string, workDir, model, mode, agentName, permissionFlag, resumeID string, extraEnv []string) (*opencodeSession, error) {
 	sessionCtx, cancel := context.WithCancel(ctx)
 
 	s := &opencodeSession{
-		cmd:       cmd,
-		extraArgs: extraArgs,
-		workDir:   workDir,
-		model:     model,
-		mode:      mode,
-		agentName: agentName,
-		extraEnv:  extraEnv,
-		events:    make(chan core.Event, 64),
-		ctx:       sessionCtx,
-		cancel:    cancel,
+		cmd:            cmd,
+		extraArgs:      extraArgs,
+		workDir:        workDir,
+		model:          model,
+		mode:           mode,
+		agentName:      agentName,
+		permissionFlag: permissionFlag,
+		extraEnv:       extraEnv,
+		events:         make(chan core.Event, 64),
+		ctx:            sessionCtx,
+		cancel:         cancel,
 	}
 	s.alive.Store(true)
 
@@ -177,8 +179,13 @@ func (s *opencodeSession) buildRunArgs(prompt string, imagePaths []string, chatI
 
 	// In yolo/auto mode, skip permission prompts entirely so headless
 	// runs don't get stuck with auto-rejected external-directory ops.
-	if s.mode == "yolo" {
-		args = append(args, "--dangerously-skip-permissions")
+	//
+	// The flag itself is configurable (agent option `permission_flag`):
+	// upstream opencode >= 1.18 and codefree-o only understand `--auto`,
+	// while older opencode builds used `--dangerously-skip-permissions`.
+	// "none" appends nothing.
+	if s.mode == "yolo" && s.permissionFlag != "" {
+		args = append(args, s.permissionFlag)
 	}
 
 	for _, imagePath := range imagePaths {

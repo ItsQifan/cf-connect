@@ -13,10 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chenhg5/cc-connect/agent/claudecode"
-	"github.com/chenhg5/cc-connect/agent/codex"
-	"github.com/chenhg5/cc-connect/agent/cursor"
-	"github.com/chenhg5/cc-connect/agent/gemini"
 	"github.com/chenhg5/cc-connect/agent/opencode"
 	"github.com/chenhg5/cc-connect/core"
 )
@@ -33,22 +29,6 @@ func skipUnlessAgentReady(t *testing.T, agentType string) {
 		t.Skipf("skip %s: binary %q not in PATH", agentType, bin)
 	}
 	switch agentType {
-	case "claudecode":
-		if os.Getenv("ANTHROPIC_API_KEY") == "" {
-			t.Skipf("skip %s: ANTHROPIC_API_KEY not set", agentType)
-		}
-	case "codex":
-		if os.Getenv("OPENAI_API_KEY") == "" {
-			t.Skipf("skip %s: OPENAI_API_KEY not set", agentType)
-		}
-	case "cursor":
-		if os.Getenv("ANTHROPIC_API_KEY") == "" && os.Getenv("CURSOR_API_KEY") == "" {
-			t.Skipf("skip %s: ANTHROPIC_API_KEY or CURSOR_API_KEY not set", agentType)
-		}
-	case "gemini":
-		if os.Getenv("GEMINI_API_KEY") == "" && os.Getenv("GOOGLE_API_KEY") == "" {
-			t.Skipf("skip %s: GEMINI_API_KEY or GOOGLE_API_KEY not set", agentType)
-		}
 	case "opencode":
 		if os.Getenv("OPENAI_API_KEY") == "" && os.Getenv("ANTHROPIC_API_KEY") == "" {
 			t.Skipf("skip %s: OPENAI_API_KEY or ANTHROPIC_API_KEY not set", agentType)
@@ -56,10 +36,6 @@ func skipUnlessAgentReady(t *testing.T, agentType string) {
 	}
 }
 
-var _ = claudecode.New
-var _ = codex.New
-var _ = cursor.New
-var _ = gemini.New
 var _ = opencode.New
 
 // mockPlatform records all messages sent through it for test verification.
@@ -203,20 +179,8 @@ func (p *agentPool) release(agentType, workDir string) {
 
 func findAgentBin(agentType string) (string, error) {
 	switch agentType {
-	case "claudecode":
-		return "claude", nil
-	case "codex":
-		return "codex", nil
-	case "cursor":
-		return "cursor", nil
-	case "gemini":
-		return "gemini", nil
 	case "opencode":
 		return "opencode", nil
-	case "iflow":
-		return "iflow", nil
-	case "qoder":
-		return "qoder", nil
 	default:
 		return "", fmt.Errorf("unsupported agent type: %s", agentType)
 	}
@@ -273,9 +237,9 @@ func waitForMessageContaining(mp *mockPlatform, substr string, timeout time.Dura
 	return "", false
 }
 
-func TestNewSession_ClaudeCode(t *testing.T) {
+func TestNewSession_Opencode(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	msg := &core.Message{
@@ -298,31 +262,9 @@ func TestNewSession_ClaudeCode(t *testing.T) {
 	}
 }
 
-func TestNewSession_Codex(t *testing.T) {
-	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "codex")
-	defer cleanup()
-
-	msg := &core.Message{
-		SessionKey: sessionKey("user1"),
-		Platform:   "mock",
-		UserID:     "user1",
-		UserName:   "testuser",
-		Content:    "hello, just say hi briefly",
-		ReplyCtx:   "ctx1",
-	}
-
-	e.ReceiveMessage(mp, msg)
-
-	_, ok := waitForMessageContaining(mp, "hi", 30*time.Second)
-	if !ok {
-		t.Fatalf("timeout waiting for response; got messages: %v", mp.getSent())
-	}
-}
-
 func TestListSessions_ShowsActiveSessions(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	msg := &core.Message{
@@ -359,7 +301,7 @@ func TestListSessions_ShowsActiveSessions(t *testing.T) {
 
 func TestSwitchSession(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	msg1 := &core.Message{
@@ -404,7 +346,7 @@ func TestSwitchSession(t *testing.T) {
 
 func TestStopCommand(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	msg := &core.Message{
@@ -436,7 +378,7 @@ func TestStopCommand(t *testing.T) {
 
 func TestEventParsing_ThinkToolUse(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	msg := &core.Message{
@@ -457,7 +399,7 @@ func TestEventParsing_ThinkToolUse(t *testing.T) {
 
 func TestMarkdownLongTextChunking(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	longContent := strings.Repeat("# Heading\n\nThis is paragraph number ", 100)
@@ -491,7 +433,7 @@ func TestMarkdownLongTextChunking(t *testing.T) {
 
 func TestPermissionModeSwitch(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	msg := &core.Message{
@@ -543,73 +485,6 @@ func TestPermissionModeSwitch(t *testing.T) {
 	}
 }
 
-func TestAgentCodex(t *testing.T) {
-	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "codex")
-	defer cleanup()
-
-	msg := &core.Message{
-		SessionKey: sessionKey("user1"),
-		Platform:   "mock",
-		UserID:     "user1",
-		UserName:   "testuser",
-		Content:    "say hello world",
-		ReplyCtx:   "ctx1",
-	}
-	e.ReceiveMessage(mp, msg)
-
-	content, ok := waitForMessageContaining(mp, "hello", 30*time.Second)
-	if !ok {
-		t.Fatalf("timeout waiting for response; got: %v", mp.getSent())
-	}
-	if len(content) == 0 {
-		t.Fatalf("empty response from codex")
-	}
-	t.Logf("codex response: %s", content[:min(100, len(content))])
-}
-
-func TestAgentCursor(t *testing.T) {
-	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "cursor")
-	defer cleanup()
-
-	msg := &core.Message{
-		SessionKey: sessionKey("user1"),
-		Platform:   "mock",
-		UserID:     "user1",
-		UserName:   "testuser",
-		Content:    "respond with exactly the word 'hello' and nothing else",
-		ReplyCtx:   "ctx1",
-	}
-	e.ReceiveMessage(mp, msg)
-
-	_, ok := waitForMessageContaining(mp, "hello", 30*time.Second)
-	if !ok {
-		t.Fatalf("timeout waiting for response; got: %v", mp.getSent())
-	}
-}
-
-func TestAgentGemini(t *testing.T) {
-	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "gemini")
-	defer cleanup()
-
-	msg := &core.Message{
-		SessionKey: sessionKey("user1"),
-		Platform:   "mock",
-		UserID:     "user1",
-		UserName:   "testuser",
-		Content:    "say hello world",
-		ReplyCtx:   "ctx1",
-	}
-	e.ReceiveMessage(mp, msg)
-
-	_, ok := waitForMessageContaining(mp, "hello", 30*time.Second)
-	if !ok {
-		t.Fatalf("timeout waiting for response; got: %v", mp.getSent())
-	}
-}
-
 func TestAgentOpencode(t *testing.T) {
 	t.Parallel()
 	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
@@ -653,7 +528,7 @@ var sharedTestCases = []AgentTestCase{
 }
 
 func TestSharedCasesAcrossAgents(t *testing.T) {
-	agents := []string{"claudecode", "codex", "cursor", "gemini", "opencode"}
+	agents := []string{"opencode"}
 	for _, agentType := range agents {
 		for _, tc := range sharedTestCases {
 			tc := tc // capture range variable
@@ -691,7 +566,7 @@ func TestSharedCasesAcrossAgents(t *testing.T) {
 // cleared (via /history), not that the agent forgets all prior knowledge.
 func TestNewSessionClearsContext(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	// Tell the agent something specific
@@ -747,7 +622,7 @@ func TestNewSessionClearsContext(t *testing.T) {
 // TestHistoryCommand verifies /history returns conversation history.
 func TestHistoryCommand(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	// Create some conversation
@@ -799,7 +674,7 @@ func TestHistoryCommand(t *testing.T) {
 // TestLanguageSwitch verifies /lang changes the response language.
 func TestLanguageSwitch(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	// Set language to Chinese
@@ -843,7 +718,7 @@ func TestLanguageSwitch(t *testing.T) {
 // TestEmptyMessage verifies that empty/whitespace messages are handled gracefully.
 func TestEmptyMessage(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	// Create a session first with a real message
@@ -880,7 +755,7 @@ func TestEmptyMessage(t *testing.T) {
 // handles image-bearing messages without crash and routes them to the agent.
 func TestImageAttachmentRouting(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	msg := &core.Message{
@@ -916,7 +791,7 @@ func TestImageAttachmentRouting(t *testing.T) {
 // TestLongTextChunking verifies that very long user input is handled without crash.
 func TestLongTextChunking(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	// Generate a very long message (>4000 chars)
@@ -949,9 +824,9 @@ func TestLongTextChunking(t *testing.T) {
 func TestConcurrentSessionIsolation(t *testing.T) {
 	// Note: we use different workDirs implicitly by using separate engines.
 	// Each engine has its own agent pool entry.
-	e1, mp1, _, cleanup1 := setupIntegrationEngine(t, "claudecode")
+	e1, mp1, _, cleanup1 := setupIntegrationEngine(t, "opencode")
 	defer cleanup1()
-	e2, mp2, _, cleanup2 := setupIntegrationEngine(t, "claudecode")
+	e2, mp2, _, cleanup2 := setupIntegrationEngine(t, "opencode")
 	defer cleanup2()
 
 	// Send distinct prompts to each session
@@ -1005,7 +880,7 @@ func (m *mockPlatform) getJoined() string {
 // TestShellCommand tests /shell builtin command execution.
 func TestShellCommand(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	// Create a session first
@@ -1055,7 +930,7 @@ func TestShellCommand(t *testing.T) {
 // TestProviderSwitch tests that /provider list works (actual switching requires config).
 func TestProviderSwitch(t *testing.T) {
 	t.Parallel()
-	e, mp, _, cleanup := setupIntegrationEngine(t, "claudecode")
+	e, mp, _, cleanup := setupIntegrationEngine(t, "opencode")
 	defer cleanup()
 
 	// First create a session

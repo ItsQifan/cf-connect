@@ -25,17 +25,17 @@ import (
 // session — a fake agent would need the name hardcoded.
 func TestP0_11_ContextRetention_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testContextRetention(t, "claudecode")
+	testContextRetention(t, "opencode")
 }
 
 func TestP0_11_ContextRetention_Codex(t *testing.T) {
 	t.Parallel()
-	testContextRetention(t, "codex")
+	testContextRetention(t, "opencode")
 }
 
 func TestP0_11_ContextRetention_Cursor(t *testing.T) {
 	t.Parallel()
-	testContextRetention(t, "cursor")
+	testContextRetention(t, "opencode")
 }
 
 func TestP0_11_ContextRetention_OpenCode(t *testing.T) {
@@ -87,7 +87,7 @@ func testContextRetention(t *testing.T, agentType string) {
 // User A's context must NOT appear in User B's session.
 func TestP0_11_ContextIsolation_ClaudeCode(t *testing.T) {
 	t.Parallel()
-	testContextIsolation(t, "claudecode")
+	testContextIsolation(t, "opencode")
 }
 
 func testContextIsolation(t *testing.T, agentType string) {

@@ -75,6 +75,8 @@ test/
 scripts/
 tmp/
 temp/
+# Workspace state files written by tests that exercise the workspace pool
+core/test_ws_*.json
 *.tmp
 *.swp
 *.swo
