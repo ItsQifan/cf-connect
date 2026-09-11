@@ -1,42 +1,23 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import { Server, Heart, ArrowRight, FolderKanban, Plus, Smartphone, Settings2 } from 'lucide-react';
+import { Server, Heart, ArrowRight, FolderKanban, Plus, Settings2 } from 'lucide-react';
 import { Card, Badge, Button, Input, Modal, EmptyState } from '@/components/ui';
 import { listProjects, type ProjectSummary } from '@/api/projects';
-import PlatformSetupQR from './PlatformSetupQR';
 import PlatformManualForm from './PlatformManualForm';
 import { platformMeta } from '@/lib/platformMeta';
 
+// CF-Connect ships a single agent: the opencode adapter, which also drives
+// codefree-o by binary name. `codefree-o` is a registered alias of the same
+// factory, so both names are offered here.
 const AGENT_OPTIONS = [
-  { key: 'claudecode', label: 'Claude Code' },
-  { key: 'codex', label: 'Codex' },
-  { key: 'gemini', label: 'Gemini CLI' },
-  { key: 'antigravity', label: 'Antigravity CLI' },
-  { key: 'cursor', label: 'Cursor' },
-  { key: 'devin', label: 'Devin' },
-  { key: 'copilot', label: 'Copilot (GitHub)' },
-  { key: 'acp', label: 'ACP (Generic)' },
-  { key: 'acp:openclaw', label: 'OpenClaw (ACP)' },
   { key: 'opencode', label: 'OpenCode' },
-  { key: 'qoder', label: 'Qoder' },
+  { key: 'codefree-o', label: 'CodeFree-O' },
 ];
 
+// CF-Connect ships a single platform: DingTalk (Stream mode, no public IP).
 const PLATFORM_OPTIONS: { key: string; label: string; color: string; qr?: boolean }[] = [
-  { key: 'feishu', label: 'Feishu / Lark', color: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400', qr: true },
-  { key: 'weixin', label: 'WeChat', color: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400', qr: true },
-  { key: 'telegram', label: 'Telegram', color: 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' },
-  { key: 'discord', label: 'Discord', color: 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
-  { key: 'slack', label: 'Slack', color: 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
   { key: 'dingtalk', label: 'DingTalk', color: 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' },
-  { key: 'wecom', label: 'WeChat Work', color: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
-  { key: 'qq', label: 'QQ (OneBot)', color: 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
-  { key: 'qqbot', label: 'QQ Bot (Official)', color: 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
-  { key: 'yuanbao', label: 'Yuanbao', color: 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
-  { key: 'line', label: 'LINE', color: 'bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
-  { key: 'weibo', label: 'Weibo (微博)', color: 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' },
-  { key: 'tuitui', label: 'TuiTui (推推)', color: 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300' },
-  { key: 'cloud_web', label: 'Cloud Web (自建 IM)', color: 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
 ];
 
 export default function ProjectList() {
@@ -47,10 +28,10 @@ export default function ProjectList() {
 
   // Add project wizard state
   const [showWizard, setShowWizard] = useState(false);
-  const [wizStep, setWizStep] = useState<'name' | 'platform' | 'qr' | 'form' | 'done'>('name');
+  const [wizStep, setWizStep] = useState<'name' | 'platform' | 'form' | 'done'>('name');
   const [newProjName, setNewProjName] = useState('');
   const [newWorkDir, setNewWorkDir] = useState('');
-  const [newAgentType, setNewAgentType] = useState('claudecode');
+  const [newAgentType, setNewAgentType] = useState('opencode');
   const [selectedPlat, setSelectedPlat] = useState('');
 
   const fetch = useCallback(async () => {
@@ -75,33 +56,24 @@ export default function ProjectList() {
     setWizStep('name');
     setNewProjName('');
     setNewWorkDir('');
-    setNewAgentType('claudecode');
+    setNewAgentType('opencode');
     setSelectedPlat('');
   };
 
-  const isQRPlatform = (type: string) => type === 'feishu' || type === 'lark' || type === 'weixin';
-
   const handlePlatformSelect = (key: string) => {
     setSelectedPlat(key);
-    if (isQRPlatform(key)) {
-      setWizStep('qr');
-    } else if (platformMeta[key]) {
+    // DingTalk is configured through the manual credentials form; there is no
+    // QR-provisioned platform left in this build.
+    if (platformMeta[key]) {
       setWizStep('form');
     } else {
       setWizStep('done');
     }
   };
 
-  const handleQRComplete = () => {
-    setShowWizard(false);
-    fetch();
-  };
-
   const handleManualDone = async () => {
-    // For non-QR platforms, use feishu EnsureProject to create the project skeleton,
-    // then the user configures platform details from the project detail page.
-    // We use the feishu save endpoint with empty credentials just to create the project.
-    // Actually, let's guide the user to the project detail page to configure.
+    // Nothing to provision server-side: the manual form posts the credentials
+    // through the platform-add endpoint. Send the user to the project page.
     setShowWizard(false);
     fetch();
     navigate(`/projects/${newProjName}`);
@@ -211,7 +183,7 @@ export default function ProjectList() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-accent/50 hover:bg-accent/5 transition-all text-left"
                 >
                   <div className={`w-9 h-9 rounded-lg ${color} flex items-center justify-center shrink-0`}>
-                    {qr ? <Smartphone size={16} /> : <Settings2 size={16} />}
+                    <Settings2 size={16} />
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{label}</div>
@@ -228,17 +200,6 @@ export default function ProjectList() {
           </div>
         )}
 
-        {wizStep === 'qr' && isQRPlatform(selectedPlat) && (
-          <PlatformSetupQR
-            platformType={selectedPlat as 'feishu' | 'weixin'}
-            projectName={newProjName}
-            workDir={newWorkDir}
-            agentType={newAgentType}
-            onComplete={handleQRComplete}
-            onCancel={() => setWizStep('platform')}
-          />
-        )}
-
         {wizStep === 'form' && platformMeta[selectedPlat] && (
           <PlatformManualForm
             platformType={selectedPlat}
@@ -253,7 +214,7 @@ export default function ProjectList() {
           />
         )}
 
-        {wizStep === 'done' && !isQRPlatform(selectedPlat) && (
+        {wizStep === 'done' && (
           <div className="space-y-4 py-4 text-center">
             <Settings2 size={40} className="mx-auto text-gray-400" />
             <p className="text-sm text-gray-600 dark:text-gray-400">

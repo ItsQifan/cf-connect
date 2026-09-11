@@ -206,13 +206,7 @@ var topLevelCommandHandlers = map[string]func([]string){
 	"config-example": func(_ []string) {
 		fmt.Print(ccconnect.ConfigExampleTOML)
 	},
-	"config": runConfig,
-	"update": func(_ []string) {
-		runUpdate()
-	},
-	"check-update": func(_ []string) {
-		checkUpdate()
-	},
+	"config":    runConfig,
 	"provider":  runProviderCommand,
 	"send":      runSend,
 	"cron":      runCron,
@@ -227,7 +221,6 @@ var topLevelCommandHandlers = map[string]func([]string){
 }
 
 func main() {
-	checkUpdateAsync()
 	// When started as a daemon (CC_LOG_FILE set), redirect logs to a rotating file.
 	// Log file setup happens before flag.Parse() so the rotating writer is in
 	// place before any slog output. To still honour --log-max-size, we
@@ -1501,19 +1494,17 @@ func printUsage() {
 		v = "dev"
 	}
 
-	// 检查是否有新版本可用并显示提示
-	updateHint := getUpdateHintIfAvailable()
-
 	fmt.Fprintf(os.Stderr, `
                                               _
   ___ ___        ___ ___  _ __  _ __   ___  ___| |_
  / __/ __|_____ / __/ _ \| '_ \| '_ \ / _ \/ __| __|
 | (_| (_|_____|  (_| (_) | | | | | | |  __/ (__| |_
- \___\__|      \___\___/|_| |_|_| |_|\___|\___|\__|  %s%s
+ \___\__|      \___\___/|_| |_|_| |_|\___|\___|\__|  %s
 
-  Bridge your messaging platforms to local AI coding agents.
-  Supports: Claude Code, Codex, Cursor, Gemini CLI, Qoder CLI, OpenCode
-  Platforms: Feishu, TuiTui, Telegram, Slack, DingTalk, Discord, LINE, WeChat Work, Weixin, QQ, QQ Bot
+  Bridge DingTalk to your local CodeFree-O / OpenCode agent.
+
+  Agent:     CodeFree-O (codefree-o), OpenCode (opencode)
+  Platform:  DingTalk (Stream mode)
 
   GitHub:  https://github.com/ItsQifan/cf-connect
   Docs:    https://github.com/ItsQifan/cf-connect/blob/main/INSTALL.md
@@ -1547,14 +1538,15 @@ Commands:
     exec             Trigger a scheduled task immediately
     del              Delete a scheduled task by ID
 
+  timer              Manage one-shot reminders
+  relay              Cross-project message relay
+    send             Send a message to another project and get the response
+
   sessions           Browse session history
     list             List all sessions (pipe-friendly)
     show <id>        Show session messages (-n N for last N)
 
   agent-sid          Print the agent session ID for the current session
-
-  relay              Cross-project message relay
-    send             Send a message to another project and get the response
 
   provider           Manage API providers for projects
     add              Add a provider (--project, --name, --api-key, ...)
@@ -1562,29 +1554,14 @@ Commands:
     remove           Remove a provider (--project, --name)
     import           Import providers from cc-switch
 
-  feishu             Setup Feishu/Lark bot credentials
-    setup            Smart setup (QR create or bind when --app is provided)
-    new              Force QR onboarding to create a new bot
-    bind             Bind existing app_id/app_secret
-
-  tuitui             Access TuiTui history, posts, and attachments
-    messages         Read chat history
-    search           Search chat history
-    post             Post a channel message
-    download         Download a message attachment
-
-  weixin             Setup Weixin personal (ilink) via QR or token
-    setup            QR login, or bind when --token is provided
-    new              Force QR login
-    bind             Bind existing ilink bot token
+  doctor             Diagnose the local setup (agent CLI, data dirs, permissions)
+  web                Manage the embedded web admin UI
 
   config             Manage configuration
     example          Print a complete annotated config.toml example
     format           Format the config file (alias: fmt)
     path             Print the resolved config file path
 
-  update             Check for updates and upgrade the binary (--pre for beta)
-  check-update       Check if a newer version is available
   config-example     (deprecated: use 'config example' instead)
 
 Examples:
@@ -1594,14 +1571,11 @@ Examples:
   cf-connect daemon logs -f           Follow daemon logs
   cf-connect send -m "hello"          Send a message to the active session
   cf-connect cron list                List all scheduled tasks
-  cf-connect feishu setup             Setup Feishu/Lark bot credentials
-  cf-connect weixin setup             Setup Weixin (ilink) with QR or --token
-  cf-connect yuanbao setup            Setup Yuanbao bot with --token app_key:app_secret
-  cf-connect update                   Update to the latest version
+  cf-connect doctor                   Check the local setup
   cf-connect config format            Format the config file
   cf-connect config example > c.toml  Save example config to a file
 
-`, v, updateHint)
+`, v)
 }
 
 func setupLogger(level string, w io.Writer) {

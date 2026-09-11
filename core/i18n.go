@@ -499,6 +499,9 @@ const (
 	MsgUpgradeDownloading MsgKey = "upgrade_downloading"
 	MsgUpgradeSuccess     MsgKey = "upgrade_success"
 	MsgUpgradeDevBuild    MsgKey = "upgrade_dev_build"
+	// MsgUpgradeRemoved replaces the whole self-update flow: upgrades are now
+	// "unzip the new archive over this directory".
+	MsgUpgradeRemoved MsgKey = "upgrade_removed"
 
 	MsgWebNotSupported MsgKey = "web_not_supported"
 	MsgWebNotEnabled   MsgKey = "web_not_enabled"
@@ -3098,6 +3101,13 @@ var messages = map[MsgKey]map[Language]string{
 		LangTraditionalChinese: "⚠️ 當前為開發版本，無法檢查更新。請從源碼構建或安裝正式發佈版本。",
 		LangJapanese:           "⚠️ 開発ビルドのため、バージョン確認ができません。ソースからビルドするか、リリース版をインストールしてください。",
 		LangSpanish:            "⚠️ Compilación de desarrollo — la verificación de versión no está disponible. Compile desde el código fuente o instale una versión publicada.",
+	},
+	MsgUpgradeRemoved: {
+		LangEnglish:            "⬆️ Self-update has been removed from this build.\n\nTo upgrade: stop the service, unzip the new cf-connect archive over this directory, then start it again.\n\n```\ncf-connect daemon stop\n:: unzip the new archive here\ncf-connect daemon start\n```",
+		LangChinese:            "⬆️ 本版本已移除自更新功能。\n\n升级方式：停止服务 → 用新的 cf-connect 压缩包覆盖解压本目录 → 重新启动。\n\n```\ncf-connect daemon stop\n:: 在此目录解压新压缩包\ncf-connect daemon start\n```",
+		LangTraditionalChinese: "⬆️ 本版本已移除自更新功能。\n\n升級方式：停止服務 → 用新的 cf-connect 壓縮包覆蓋解壓本目錄 → 重新啟動。\n\n```\ncf-connect daemon stop\n:: 在此目錄解壓新壓縮包\ncf-connect daemon start\n```",
+		LangJapanese:           "⬆️ このビルドでは自動更新が削除されました。\n\n更新方法：サービスを停止 → 新しい cf-connect アーカイブをこのディレクトリに上書き展開 → 再起動。\n\n```\ncf-connect daemon stop\n:: ここで新しいアーカイブを展開\ncf-connect daemon start\n```",
+		LangSpanish:            "⬆️ La actualización automática se ha eliminado de esta compilación.\n\nPara actualizar: detén el servicio, descomprime el nuevo archivo cf-connect sobre este directorio y vuelve a iniciarlo.\n\n```\ncf-connect daemon stop\n:: descomprime aquí el nuevo archivo\ncf-connect daemon start\n```",
 	},
 	MsgWebNotSupported: {
 		LangEnglish:            "⚠️ Web admin is not available in this build. Rebuild without the `no_web` tag to enable it.",

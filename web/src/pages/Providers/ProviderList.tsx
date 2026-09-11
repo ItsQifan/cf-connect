@@ -60,13 +60,12 @@ export default function ProviderList() {
 
   const handleAddFromPreset = (preset: ProviderPreset) => {
     const agentTypes = Object.keys(preset.agents || {});
-    const firstAt = agentTypes[0] || 'claudecode';
+    const firstAt = agentTypes[0] || 'opencode';
     const firstAc = preset.agents?.[firstAt];
 
     const endpoints: Record<string, string> = {};
     const agentModels: Record<string, string> = {};
     const agentModelLists: Record<string, ProviderModel[]> = {};
-    let codex: GlobalProvider['codex'];
 
     for (const [at, cfg] of Object.entries(preset.agents || {})) {
       if (at !== firstAt && cfg.base_url) endpoints[at] = cfg.base_url;
@@ -74,9 +73,6 @@ export default function ProviderList() {
       const models = cfg.models?.map(m => ({ model: m }));
       if (models?.length && at !== firstAt) agentModelLists[at] = models;
       if (at === firstAt && models?.length) { /* stored in top-level */ }
-      if (at === 'codex' && cfg.codex_config?.wire_api) {
-        codex = { wire_api: cfg.codex_config.wire_api, http_headers: cfg.codex_config.http_headers };
-      }
     }
 
     setEditProvider({
@@ -89,7 +85,6 @@ export default function ProviderList() {
       endpoints: Object.keys(endpoints).length ? endpoints : undefined,
       agent_models: Object.keys(agentModels).length ? agentModels : undefined,
       agent_model_lists: Object.keys(agentModelLists).length ? agentModelLists : undefined,
-      codex,
       _preset: preset,
     } as any);
     setShowAddModal(true);
@@ -476,7 +471,10 @@ function ModelListEditor({
 
 /* ── Per-agent config type (internal form state) ── */
 
-type AgentConfigEntry = { base_url: string; model: string; models: ProviderModel[]; wire_api?: string };
+// CF-Connect ships the opencode adapter (which also drives codefree-o).
+const AGENT_TYPE_CHOICES = ['opencode', 'codefree-o'];
+
+type AgentConfigEntry = { base_url: string; model: string; models: ProviderModel[] };
 
 function buildPerAgentConfigs(form: GlobalProvider): Record<string, AgentConfigEntry> {
   const agents = form.agent_types || [];
@@ -486,7 +484,6 @@ function buildPerAgentConfigs(form: GlobalProvider): Record<string, AgentConfigE
       base_url: form.endpoints?.[at] || form.base_url || '',
       model: form.agent_models?.[at] || form.model || '',
       models: form.agent_model_lists?.[at] || form.models || [],
-      wire_api: at === 'codex' ? form.codex?.wire_api || '' : undefined,
     };
   }
   return result;
@@ -501,7 +498,6 @@ function mergePerAgentToForm(form: GlobalProvider, configs: Record<string, Agent
   const endpoints: Record<string, string> = {};
   const agentModels: Record<string, string> = {};
   const agentModelLists: Record<string, ProviderModel[]> = {};
-  let codex: GlobalProvider['codex'];
 
   for (const at of agents) {
     const cfg = configs[at];
@@ -511,9 +507,6 @@ function mergePerAgentToForm(form: GlobalProvider, configs: Record<string, Agent
       const modelsStr = JSON.stringify(cfg.models);
       const baseModelsStr = JSON.stringify(base.models);
       if (cfg.models.length > 0 && modelsStr !== baseModelsStr) agentModelLists[at] = cfg.models;
-    }
-    if (at === 'codex' && cfg.wire_api) {
-      codex = { wire_api: cfg.wire_api };
     }
   }
 
@@ -525,7 +518,6 @@ function mergePerAgentToForm(form: GlobalProvider, configs: Record<string, Agent
     endpoints: Object.keys(endpoints).length ? endpoints : undefined,
     agent_models: Object.keys(agentModels).length ? agentModels : undefined,
     agent_model_lists: Object.keys(agentModelLists).length ? agentModelLists : undefined,
-    codex: codex || undefined,
   };
 }
 
@@ -572,27 +564,6 @@ function AgentConfigEditor({
           onSetDefault={model => onChange({ ...config, model })}
         />
       </div>
-      {agentType === 'codex' && (
-        <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-            {t('globalProviders.form.codexWireApi')}
-          </label>
-          <select
-            value={config.wire_api || ''}
-            onChange={e => onChange({ ...config, wire_api: e.target.value || undefined })}
-            className={cn(
-              'w-full rounded-xl border px-3 py-2 text-sm outline-none transition-colors',
-              'border-gray-200 bg-white text-gray-900',
-              'dark:border-white/10 dark:bg-white/[0.04] dark:text-white',
-              'focus:border-accent focus:ring-1 focus:ring-accent/30',
-            )}
-          >
-            <option value="">default</option>
-            <option value="responses">responses</option>
-            <option value="chat">chat</option>
-          </select>
-        </div>
-      )}
     </div>
   );
 }
@@ -633,7 +604,6 @@ function ProviderFormModal({
           for (const at of newAgents) {
             if (!updated[at]) {
               updated[at] = { base_url: f.base_url || '', model: f.model || '', models: [...(f.models || [])] };
-              if (at === 'codex') updated[at].wire_api = f.codex?.wire_api || '';
             }
           }
           for (const at of Object.keys(updated)) {
@@ -705,7 +675,7 @@ function ProviderFormModal({
               {t('globalProviders.form.agentTypes')}
             </label>
             <div className="flex flex-wrap gap-2">
-              {['claudecode', 'codex', 'gemini', 'opencode', 'cursor', 'kimi', 'qoder', 'acp'].map(at => {
+              {AGENT_TYPE_CHOICES.map(at => {
                 const selected = agents.includes(at);
                 return (
                   <button

@@ -13846,47 +13846,9 @@ func (e *Engine) renderVersionCard() *Card {
 		Build()
 }
 
+// renderUpgradeCard explains the manual upgrade path (self-update removed).
 func (e *Engine) renderUpgradeCard() *Card {
-	title := e.i18n.T(MsgCardTitleUpgrade)
-	cur := CurrentVersion
-	if cur == "" || cur == "dev" {
-		return e.simpleCard(title, "grey", e.i18n.T(MsgUpgradeDevBuild))
-	}
-
-	type result struct {
-		release *ReleaseInfo
-		err     error
-	}
-	ch := make(chan result, 1)
-	useGitee := e.i18n.IsZhLike()
-	go func() {
-		r, err := CheckForUpdate(cur, useGitee)
-		ch <- result{r, err}
-	}()
-
-	var content string
-	select {
-	case res := <-ch:
-		if res.err != nil {
-			content = e.i18n.Tf(MsgError, res.err)
-		} else if res.release == nil {
-			content = fmt.Sprintf(e.i18n.T(MsgUpgradeUpToDate), cur)
-		} else {
-			body := res.release.Body
-			if len([]rune(body)) > 300 {
-				body = string([]rune(body)[:300]) + "…"
-			}
-			content = fmt.Sprintf(e.i18n.T(MsgUpgradeAvailable), cur, res.release.TagName, body)
-		}
-	case <-time.After(8 * time.Second):
-		content = "⏱ " + e.i18n.T(MsgUpgradeChecking) + e.i18n.T(MsgUpgradeTimeoutSuffix)
-	}
-
-	return NewCard().
-		Title(title, "grey").
-		Markdown(content).
-		Buttons(e.cardBackButton()).
-		Build()
+	return e.simpleCard(e.i18n.T(MsgCardTitleUpgrade), "grey", e.i18n.T(MsgUpgradeRemoved))
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -15274,80 +15236,15 @@ func (e *Engine) cmdDoctor(p Platform, msg *Message) {
 	e.reply(p, msg.ReplyCtx, report)
 }
 
-func (e *Engine) cmdUpgrade(p Platform, msg *Message, args []string) {
-	subCmd := ""
-	if len(args) > 0 {
-		subCmd = matchSubCommand(args[0], []string{"confirm", "check"})
-	}
-
-	if subCmd == "confirm" {
-		e.cmdUpgradeConfirm(p, msg)
-		return
-	}
-
-	// Default: check for updates
-	e.reply(p, msg.ReplyCtx, e.i18n.T(MsgUpgradeChecking))
-
-	cur := CurrentVersion
-	if cur == "" || cur == "dev" {
-		e.reply(p, msg.ReplyCtx, e.i18n.T(MsgUpgradeDevBuild))
-		return
-	}
-
-	useGitee := e.i18n.IsZhLike()
-	release, err := CheckForUpdate(cur, useGitee)
-	if err != nil {
-		e.reply(p, msg.ReplyCtx, e.i18n.Tf(MsgError, err))
-		return
-	}
-	if release == nil {
-		e.reply(p, msg.ReplyCtx, fmt.Sprintf(e.i18n.T(MsgUpgradeUpToDate), cur))
-		return
-	}
-
-	body := release.Body
-	if len([]rune(body)) > 300 {
-		body = string([]rune(body)[:300]) + "…"
-	}
-
-	e.reply(p, msg.ReplyCtx, fmt.Sprintf(e.i18n.T(MsgUpgradeAvailable), cur, release.TagName, body))
-}
-
-func (e *Engine) cmdUpgradeConfirm(p Platform, msg *Message) {
-	cur := CurrentVersion
-	if cur == "" || cur == "dev" {
-		e.reply(p, msg.ReplyCtx, e.i18n.T(MsgUpgradeDevBuild))
-		return
-	}
-
-	useGitee := e.i18n.IsZhLike()
-	release, err := CheckForUpdate(cur, useGitee)
-	if err != nil {
-		e.reply(p, msg.ReplyCtx, e.i18n.Tf(MsgError, err))
-		return
-	}
-	if release == nil {
-		e.reply(p, msg.ReplyCtx, fmt.Sprintf(e.i18n.T(MsgUpgradeUpToDate), cur))
-		return
-	}
-
-	e.reply(p, msg.ReplyCtx, fmt.Sprintf(e.i18n.T(MsgUpgradeDownloading), release.TagName))
-
-	if err := SelfUpdate(release.TagName, useGitee); err != nil {
-		e.reply(p, msg.ReplyCtx, e.i18n.Tf(MsgError, err))
-		return
-	}
-
-	e.reply(p, msg.ReplyCtx, fmt.Sprintf(e.i18n.T(MsgUpgradeSuccess), release.TagName))
-
-	// Auto-restart to apply the update
-	select {
-	case RestartCh <- RestartRequest{
-		SessionKey: msg.SessionKey,
-		Platform:   p.Name(),
-	}:
-	default:
-	}
+// cmdUpgrade explains how to upgrade instead of doing it.
+//
+// Self-update was removed: the distribution model is "unzip a new archive
+// over the old directory", so there is no download-and-replace path any more.
+// The command is kept (rather than deleted) so existing muscle memory and
+// disabled_commands entries still resolve, and so users get a clear answer
+// instead of an "unknown command" error.
+func (e *Engine) cmdUpgrade(p Platform, msg *Message, _ []string) {
+	e.reply(p, msg.ReplyCtx, e.i18n.T(MsgUpgradeRemoved))
 }
 
 func (e *Engine) cmdConfigReload(p Platform, msg *Message) {

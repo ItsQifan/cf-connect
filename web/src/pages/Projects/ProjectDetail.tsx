@@ -11,51 +11,25 @@ import { listProviders, addProvider, removeProvider, activateProvider, type Prov
 import { getHeartbeat, pauseHeartbeat, resumeHeartbeat, triggerHeartbeat, setHeartbeatInterval, type HeartbeatStatus } from '@/api/heartbeat';
 import { restartSystem } from '@/api/status';
 import { formatTime, cn } from '@/lib/utils';
-import PlatformSetupQR from './PlatformSetupQR';
 import PlatformManualForm from './PlatformManualForm';
 import { platformMeta } from '@/lib/platformMeta';
 
-const PLATFORM_OPTIONS: { key: string; label: string; color: string; abbr: string; qr?: boolean }[] = [
-  { key: 'feishu', label: 'Feishu / Lark', abbr: 'FS', color: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400', qr: true },
-  { key: 'weixin', label: 'WeChat', abbr: 'WX', color: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400', qr: true },
-  { key: 'telegram', label: 'Telegram', abbr: 'TG', color: 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' },
-  { key: 'discord', label: 'Discord', abbr: 'DC', color: 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
-  { key: 'slack', label: 'Slack', abbr: 'SK', color: 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
+// CF-Connect ships DingTalk only; the other platform adapters were removed.
+const PLATFORM_OPTIONS: { key: string; label: string; color: string; abbr: string }[] = [
   { key: 'dingtalk', label: 'DingTalk', abbr: 'DT', color: 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' },
-  { key: 'wecom', label: 'WeChat Work', abbr: 'WC', color: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
-  { key: 'qq', label: 'QQ (OneBot)', abbr: 'QQ', color: 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
-  { key: 'qqbot', label: 'QQ Bot (Official)', abbr: 'QB', color: 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
-  { key: 'yuanbao', label: 'Yuanbao', abbr: 'YB', color: 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
-  { key: 'line', label: 'LINE', abbr: 'LN', color: 'bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
-  { key: 'weibo', label: 'Weibo (微博)', abbr: 'WB', color: 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' },
-  { key: 'tuitui', label: 'TuiTui (推推)', abbr: 'TT', color: 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300' },
-  { key: 'cloud_web', label: 'Cloud Web (自建 IM)', abbr: 'CW', color: 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
 ];
 
 // Permission mode options per agent type. The values must match the keys
-// emitted by each agent's `normalizeMode` / `PermissionModes` so that
-// "save" round-trips correctly. See:
-//   claudecode: agent/claudecode/claudecode.go:818  (PermissionModes)
-//   codex:      agent/codex/codex.go:129            (normalizeMode)
-const CLAUDECODE_MODE_OPTIONS: { value: string; label: string }[] = [
+// emitted by the agent's `normalizeMode` / `PermissionModes` so that "save"
+// round-trips correctly. See agent/opencode/opencode.go (normalizeMode).
+const OPENCODE_MODE_OPTIONS: { value: string; label: string }[] = [
   { value: 'default', label: 'default' },
-  { value: 'acceptEdits', label: 'acceptEdits (edit)' },
-  { value: 'plan', label: 'plan' },
-  { value: 'bypassPermissions', label: 'bypassPermissions (yolo)' },
-  { value: 'dontAsk', label: 'dontAsk' },
-];
-const CODEX_MODE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'suggest', label: 'suggest (default)' },
-  { value: 'auto-edit', label: 'auto-edit' },
-  { value: 'full-auto', label: 'full-auto' },
-  { value: 'yolo', label: 'yolo (bypass)' },
+  { value: 'yolo', label: 'yolo (auto-approve tools)' },
 ];
 const MODE_OPTIONS_BY_AGENT: Record<string, { value: string; label: string }[]> = {
-  claudecode: CLAUDECODE_MODE_OPTIONS,
-  codex: CODEX_MODE_OPTIONS,
+  opencode: OPENCODE_MODE_OPTIONS,
+  'codefree-o': OPENCODE_MODE_OPTIONS,
 };
-
-const isQRPlatform = (type: string) => type === 'feishu' || type === 'lark' || type === 'weixin';
 
 type Tab = 'overview' | 'providers' | 'heartbeat' | 'settings';
 
@@ -112,10 +86,10 @@ export default function ProjectDetail() {
 
   // Permission mode options track the *effective* agent type: a freshly-picked
   // type overrides the saved one so the dropdown matches what would be saved.
-  // Unknown agent types fall back to ClaudeCode (matches the previous hardcoded
-  // behavior) so this change is non-breaking for other agents.
+  // Unknown agent types fall back to the opencode modes, which is also what
+  // `codefree-o` uses (same adapter).
   const effectiveAgentType = selectedAgentType || project?.agent_type || '';
-  const modeOptions = MODE_OPTIONS_BY_AGENT[effectiveAgentType] || CLAUDECODE_MODE_OPTIONS;
+  const modeOptions = MODE_OPTIONS_BY_AGENT[effectiveAgentType] || OPENCODE_MODE_OPTIONS;
 
   const handleDeleteProject = async () => {
     if (!name) return;
@@ -680,7 +654,7 @@ export default function ProjectDetail() {
               {t('setup.choosePlatform', 'Choose a platform to connect:')}
             </p>
             <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
-              {PLATFORM_OPTIONS.map(({ key, label, color, qr, abbr }) => (
+              {PLATFORM_OPTIONS.map(({ key, label, color, abbr }) => (
                 <button
                   key={key}
                   onClick={() => setAddPlatType(key)}
@@ -692,23 +666,13 @@ export default function ProjectDetail() {
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{label}</div>
                     <div className="text-[11px] text-gray-400">
-                      {qr ? t('setup.scanToConnect', 'Scan QR code') : t('setup.manualSetup', 'Manual setup')}
+                      {t('setup.manualSetup', 'Manual setup')}
                     </div>
                   </div>
                 </button>
               ))}
             </div>
           </div>
-        ) : isQRPlatform(addPlatType) ? (
-          <PlatformSetupQR
-            platformType={addPlatType as 'feishu' | 'weixin'}
-            projectName={name!}
-            onComplete={() => {
-              setShowAddPlatform(false);
-              setShowRestartModal(true);
-            }}
-            onCancel={() => setAddPlatType('')}
-          />
         ) : platformMeta[addPlatType] ? (
           <PlatformManualForm
             platformType={addPlatType}
