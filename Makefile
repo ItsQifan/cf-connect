@@ -3,7 +3,10 @@ MODULE     := github.com/ItsQifan/cf-connect
 CMD        := ./cmd/cf-connect
 DIST       := dist
 
-VERSION := v1.5.1-beta.1
+# Version scheme for this fork: <upstream version>-cf.<fork revision>.
+# The upstream part tracks the cc-connect commit this tree was trimmed from, so
+# the two can be compared at a glance.
+VERSION := v1.5.1-cf.1
 COMMIT     := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 BUILD_TIME := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 
