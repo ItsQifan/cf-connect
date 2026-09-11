@@ -1068,13 +1068,13 @@ func TestMgmt_AddPlatformToNewProject_DoesNotRequireEngine(t *testing.T) {
 		return nil
 	})
 
-	// "brand-new-project" has no engine registered — this must NOT return 404.
+	// "brand-new-project" has no engine registered 鈥?this must NOT return 404.
 	r := mgmtPost(t, ts.URL+"/api/v1/projects/brand-new-project/add-platform", "tok", map[string]any{
 		"type":    "dingtalk",
 		"options": map[string]any{"client_id": "abc", "client_secret": "def"},
 	})
 	if !r.OK {
-		t.Fatalf("add-platform to new project failed: %s — should not require a running engine", r.Error)
+		t.Fatalf("add-platform to new project failed: %s 鈥?should not require a running engine", r.Error)
 	}
 	if savedProject != "brand-new-project" {
 		t.Fatalf("saved project = %q, want brand-new-project", savedProject)
@@ -1113,42 +1113,18 @@ func TestMgmt_AddPlatformToNewProject_RejectsMissingWorkDir(t *testing.T) {
 func TestMgmt_SetupSave_RejectsMissingWorkDir(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "missing")
 
-	t.Run("feishu", func(t *testing.T) {
+	t.Run("add_platform", func(t *testing.T) {
 		mgmt := NewManagementServer(0, "", nil)
 		called := false
-		mgmt.SetSetupFeishuSave(func(req FeishuSetupSaveRequest) error {
+		mgmt.SetAddPlatformToProject(func(_ string, _ string, _ map[string]any, _ string, _ string) error {
 			called = true
 			return nil
 		})
 
-		r, code := mgmtPostHandler(t, mgmt.handleSetupFeishuSave, "/api/v1/setup/feishu/save", map[string]any{
-			"project":    "demo",
-			"app_id":     "app",
-			"app_secret": "secret",
-			"work_dir":   missing,
-		})
-		if r.OK || code != http.StatusBadRequest {
-			t.Fatalf("response ok=%v status=%d error=%q, want 400", r.OK, code, r.Error)
-		}
-		if !strings.Contains(r.Error, "work_dir does not exist") {
-			t.Fatalf("error = %q, want work_dir does not exist", r.Error)
-		}
-		if called {
-			t.Fatal("setupFeishuSave should not be called when work_dir is invalid")
-		}
-	})
-
-	t.Run("weixin", func(t *testing.T) {
-		mgmt := NewManagementServer(0, "", nil)
-		called := false
-		mgmt.SetSetupWeixinSave(func(req WeixinSetupSaveRequest) error {
-			called = true
-			return nil
-		})
-
-		r, code := mgmtPostHandler(t, mgmt.handleSetupWeixinSave, "/api/v1/setup/weixin/save", map[string]any{
-			"project":  "demo",
-			"token":    "token",
+		r, code := mgmtPostHandler(t, func(w http.ResponseWriter, req *http.Request) {
+			mgmt.handleProjectAddPlatform(w, req, "demo")
+		}, "/api/v1/projects/demo/platforms", map[string]any{
+			"type":     "dingtalk",
 			"work_dir": missing,
 		})
 		if r.OK || code != http.StatusBadRequest {
@@ -1158,7 +1134,7 @@ func TestMgmt_SetupSave_RejectsMissingWorkDir(t *testing.T) {
 			t.Fatalf("error = %q, want work_dir does not exist", r.Error)
 		}
 		if called {
-			t.Fatal("setupWeixinSave should not be called when work_dir is invalid")
+			t.Fatal("addPlatformToProject should not be called when work_dir is invalid")
 		}
 	})
 }
@@ -1227,7 +1203,7 @@ func mgmtPut(t *testing.T, url, token string, body any) mgmtResponse {
 	return r
 }
 
-// ── Restart ──
+// 鈹€鈹€ Restart 鈹€鈹€
 
 func TestMgmt_Restart(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1251,7 +1227,7 @@ func TestMgmt_Restart_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Agents ──
+// 鈹€鈹€ Agents 鈹€鈹€
 
 func TestMgmt_Agents(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1277,7 +1253,7 @@ func TestMgmt_Agents_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Global Settings ──
+// 鈹€鈹€ Global Settings 鈹€鈹€
 
 func TestMgmt_GlobalSettings_Get(t *testing.T) {
 	mgmt, ts, _ := testManagementServer(t, "tok")
@@ -1341,7 +1317,7 @@ func TestMgmt_GlobalSettings_PatchSaveError(t *testing.T) {
 	}
 }
 
-// ── Project Send ──
+// 鈹€鈹€ Project Send 鈹€鈹€
 
 func TestMgmt_ProjectSend_EmptyMessage(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1365,7 +1341,7 @@ func TestMgmt_ProjectSend_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Project Providers ──
+// 鈹€鈹€ Project Providers 鈹€鈹€
 
 func TestMgmt_ProjectProviders_NoProviderSwitcher(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1536,7 +1512,7 @@ func TestMgmt_ProjectProviders_DeleteInactive(t *testing.T) {
 	}
 }
 
-// ── Project Provider Refs ──
+// 鈹€鈹€ Project Provider Refs 鈹€鈹€
 
 func TestMgmt_ProjectProviderRefs_GetEmpty(t *testing.T) {
 	agent := &stubProviderAgent{providers: []ProviderConfig{{Name: "openai"}}}
@@ -1581,7 +1557,7 @@ func TestMgmt_ProjectProviderRefs_PutNotConfigured(t *testing.T) {
 	}
 }
 
-// ── Project Users ──
+// 鈹€鈹€ Project Users 鈹€鈹€
 
 func TestMgmt_ProjectUsers_Get(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1609,7 +1585,7 @@ func TestMgmt_ProjectUsers_PatchInvalidJSON(t *testing.T) {
 	}
 }
 
-// ── Project Delete ──
+// 鈹€鈹€ Project Delete 鈹€鈹€
 
 func TestMgmt_ProjectDelete_NotConfigured(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1622,7 +1598,7 @@ func TestMgmt_ProjectDelete_NotConfigured(t *testing.T) {
 	}
 }
 
-// ── Global Providers ──
+// 鈹€鈹€ Global Providers 鈹€鈹€
 
 func TestMgmt_GlobalProviders_GetEmpty(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1737,7 +1713,7 @@ func TestMgmt_GlobalProviders_DeleteNotFound(t *testing.T) {
 	}
 }
 
-// ── Provider Presets ──
+// 鈹€鈹€ Provider Presets 鈹€鈹€
 
 func TestMgmt_ProviderPresets_NilFunc(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1771,7 +1747,7 @@ func TestMgmt_ProviderPresets_Error(t *testing.T) {
 	}
 }
 
-// ── Skills ──
+// 鈹€鈹€ Skills 鈹€鈹€
 
 func TestMgmt_Skills(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1829,7 +1805,7 @@ func TestMgmt_SkillPresets_Error(t *testing.T) {
 	}
 }
 
-// ── Cron PATCH (update job) ──
+// 鈹€鈹€ Cron PATCH (update job) 鈹€鈹€
 
 func TestMgmt_CronPatch(t *testing.T) {
 	mgmt, ts, e := testManagementServer(t, "tok")
@@ -1885,7 +1861,7 @@ func TestMgmt_CronPatch_NonexistentJob(t *testing.T) {
 	}
 }
 
-// ── Project routes: unknown sub-path ──
+// 鈹€鈹€ Project routes: unknown sub-path 鈹€鈹€
 
 func TestMgmt_ProjectRoutes_UnknownSubpath(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1895,7 +1871,7 @@ func TestMgmt_ProjectRoutes_UnknownSubpath(t *testing.T) {
 	}
 }
 
-// ── Session create missing session_key ──
+// 鈹€鈹€ Session create missing session_key 鈹€鈹€
 
 func TestMgmt_SessionCreate_MissingKey(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1907,7 +1883,7 @@ func TestMgmt_SessionCreate_MissingKey(t *testing.T) {
 	}
 }
 
-// ── Reload failure ──
+// 鈹€鈹€ Reload failure 鈹€鈹€
 
 func TestMgmt_Reload_Failure(t *testing.T) {
 	_, ts, e := testManagementServer(t, "tok")
@@ -1923,7 +1899,7 @@ func TestMgmt_Reload_Failure(t *testing.T) {
 	}
 }
 
-// ── Config PUT (save) ──
+// 鈹€鈹€ Config PUT (save) 鈹€鈹€
 
 func TestMgmt_Config_Save(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1945,7 +1921,7 @@ func TestMgmt_Config_Save(t *testing.T) {
 	}
 }
 
-// ── CC-Switch providers ──
+// 鈹€鈹€ CC-Switch providers 鈹€鈹€
 
 func TestMgmt_CCSwitchProviders_NotConfigured(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -1960,11 +1936,11 @@ func TestMgmt_CCSwitchProviders_NotConfigured(t *testing.T) {
 	}
 }
 
-// ────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Edge cases & boundary tests below
-// ────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
-// ── Restart edge cases ──
+// 鈹€鈹€ Restart edge cases 鈹€鈹€
 
 func TestMgmt_Restart_AlreadyInProgress(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2000,7 +1976,7 @@ func TestMgmt_Restart_WithSessionKey(t *testing.T) {
 	}
 }
 
-// ── Config edge cases ──
+// 鈹€鈹€ Config edge cases 鈹€鈹€
 
 func TestMgmt_Config_NoPathSet(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2031,7 +2007,7 @@ func TestMgmt_Config_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Settings edge cases ──
+// 鈹€鈹€ Settings edge cases 鈹€鈹€
 
 func TestMgmt_GlobalSettings_PatchInvalidJSON(t *testing.T) {
 	mgmt, ts, _ := testManagementServer(t, "tok")
@@ -2071,7 +2047,7 @@ func TestMgmt_GlobalSettings_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Send edge cases ──
+// 鈹€鈹€ Send edge cases 鈹€鈹€
 
 func TestMgmt_ProjectSend_InvalidJSON(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2100,7 +2076,7 @@ func TestMgmt_ProjectSend_NonexistentProject(t *testing.T) {
 	}
 }
 
-// ── Project Detail PATCH edge cases ──
+// 鈹€鈹€ Project Detail PATCH edge cases 鈹€鈹€
 
 func TestMgmt_ProjectPatch_InvalidJSON(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2216,7 +2192,7 @@ func TestMgmt_ProjectDetail_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Project Delete edge cases ──
+// 鈹€鈹€ Project Delete edge cases 鈹€鈹€
 
 func TestMgmt_ProjectDelete_Success(t *testing.T) {
 	mgmt, ts, _ := testManagementServer(t, "tok")
@@ -2253,7 +2229,7 @@ func TestMgmt_ProjectDelete_Error(t *testing.T) {
 	}
 }
 
-// ── Session switch edge cases ──
+// 鈹€鈹€ Session switch edge cases 鈹€鈹€
 
 func TestMgmt_SessionSwitch_Success(t *testing.T) {
 	_, ts, e := testManagementServer(t, "tok")
@@ -2326,7 +2302,7 @@ func TestMgmt_SessionSwitch_InvalidJSON(t *testing.T) {
 	}
 }
 
-// ── Session detail edge cases ──
+// 鈹€鈹€ Session detail edge cases 鈹€鈹€
 
 func TestMgmt_SessionDetail_NotFound(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2378,7 +2354,7 @@ func TestMgmt_Sessions_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Provider edge cases ──
+// 鈹€鈹€ Provider edge cases 鈹€鈹€
 
 func TestMgmt_ProjectProviders_PostInvalidJSON(t *testing.T) {
 	agent := &stubProviderAgent{providers: []ProviderConfig{{Name: "a"}}}
@@ -2440,7 +2416,7 @@ func TestMgmt_ProjectProviders_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Provider Refs edge cases ──
+// 鈹€鈹€ Provider Refs edge cases 鈹€鈹€
 
 func TestMgmt_ProjectProviderRefs_PutInvalidJSON(t *testing.T) {
 	agent := &stubProviderAgent{providers: []ProviderConfig{{Name: "a"}}}
@@ -2534,7 +2510,7 @@ func TestMgmt_ProjectProviderRefs_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Users edge cases ──
+// 鈹€鈹€ Users edge cases 鈹€鈹€
 
 func TestMgmt_ProjectUsers_PatchValid(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2580,7 +2556,7 @@ func TestMgmt_ProjectUsers_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Global Providers edge cases ──
+// 鈹€鈹€ Global Providers edge cases 鈹€鈹€
 
 func TestMgmt_GlobalProviders_GetError(t *testing.T) {
 	mgmt, ts, _ := testManagementServer(t, "tok")
@@ -2687,14 +2663,14 @@ func TestMgmt_GlobalProviders_RouteMethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Heartbeat edge cases ──
+// 鈹€鈹€ Heartbeat edge cases 鈹€鈹€
 
 func TestMgmt_Heartbeat_PauseResumeRun(t *testing.T) {
 	mgmt, ts, _ := testManagementServer(t, "tok")
 	hs := NewHeartbeatScheduler("")
 	mgmt.SetHeartbeatScheduler(hs)
 
-	// pause/resume/run on unconfigured project → 404
+	// pause/resume/run on unconfigured project 鈫?404
 	for _, action := range []string{"pause", "resume", "run"} {
 		r := mgmtPost(t, ts.URL+"/api/v1/projects/test-project/heartbeat/"+action, "tok", nil)
 		if r.OK {
@@ -2760,7 +2736,7 @@ func TestMgmt_Heartbeat_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// ── Cron edge cases ──
+// 鈹€鈹€ Cron edge cases 鈹€鈹€
 
 func TestMgmt_Cron_PostMissingCronExpr(t *testing.T) {
 	mgmt, ts, e := testManagementServer(t, "tok")
@@ -2901,7 +2877,7 @@ func TestMgmt_CronByID_EmptyID(t *testing.T) {
 	}
 }
 
-// ── Project routes: empty project name ──
+// 鈹€鈹€ Project routes: empty project name 鈹€鈹€
 
 func TestMgmt_ProjectRoutes_EmptyProjectName(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2913,7 +2889,7 @@ func TestMgmt_ProjectRoutes_EmptyProjectName(t *testing.T) {
 	}
 }
 
-// ── Reload edge cases ──
+// 鈹€鈹€ Reload edge cases 鈹€鈹€
 
 func TestMgmt_Reload_MethodNotAllowed(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2931,7 +2907,7 @@ func TestMgmt_Reload_NoReloadFunc(t *testing.T) {
 	}
 }
 
-// ── CC-Switch edge cases ──
+// 鈹€鈹€ CC-Switch edge cases 鈹€鈹€
 
 func TestMgmt_CCSwitchProviders_PostNotConfigured(t *testing.T) {
 	_, ts, _ := testManagementServer(t, "tok")
@@ -2969,44 +2945,3 @@ func TestMgmt_CCSwitchProviders_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-// TestMgmt_SetupWeixinPoll_RejectsMalformedAPIURL is a regression test for a
-// nil-pointer panic in handleSetupWeixinPoll. The handler did
-// `u, _ := url.Parse(apiBase + "/")` and then immediately called
-// `u.JoinPath(...)`. For inputs like "://" or "%zz", url.Parse returns a nil
-// URL plus an error; the discarded error meant the next line crashed the
-// management server with `runtime error: invalid memory address or nil
-// pointer dereference`. handleSetupWeixinBegin already validated this same
-// field; this test pins the symmetric handling here.
-func TestMgmt_SetupWeixinPoll_RejectsMalformedAPIURL(t *testing.T) {
-	mgmt := NewManagementServer(0, "", nil)
-
-	for _, bad := range []string{"://", "://malformed", "%zz"} {
-		body := map[string]any{
-			"qr_key":  "abc",
-			"api_url": bad,
-		}
-		buf := new(bytes.Buffer)
-		if err := json.NewEncoder(buf).Encode(body); err != nil {
-			t.Fatalf("encode body: %v", err)
-		}
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/setup/weixin/poll", buf)
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		// Recover any panic so the test reports a meaningful failure rather
-		// than crashing the test binary, then assert the handler returned a
-		// 4xx (not 5xx and not a panic) for the bad input.
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					t.Fatalf("handleSetupWeixinPoll panicked on api_url=%q: %v", bad, r)
-				}
-			}()
-			mgmt.handleSetupWeixinPoll(w, req)
-		}()
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("api_url=%q: status=%d, want %d (body=%s)", bad, w.Code, http.StatusBadRequest, w.Body.String())
-		}
-	}
-}

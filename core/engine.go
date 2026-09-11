@@ -28,7 +28,6 @@ import (
 )
 
 const maxPlatformMessageLen = 4000
-const telegramBotCommandLimit = 100
 const defaultMaxQueuedMessages = 5 // default cap for queued messages per session
 
 // defaultPendingRestartTimeout is how long the post-restart notify
@@ -459,12 +458,6 @@ type Engine struct {
 	initFlowsMu                  sync.Mutex
 	sendWorkDirMu                sync.RWMutex
 	sendWorkDirs                 map[string]string // sessionKey → work_dir assigned by send --cwd
-
-	// Terminal observation (--observe)
-	observeEnabled    bool
-	observeProjectDir string // ~/.claude/projects/{projectKey}
-	observeSessionKey string // e.g. "slack:C123:U456" — target for forwarding
-	observeCancel     context.CancelFunc
 
 	// Interactive agent session management
 	interactiveMu     sync.Mutex
@@ -1032,28 +1025,8 @@ func (e *Engine) SetAttachmentSendEnabled(v bool) {
 	e.attachmentSendEnabled = v
 }
 
-// SetObserveConfig enables terminal session observation.
-// projectDir is the Claude Code project directory containing session JSONL files.
-// sessionKey identifies the Slack channel to forward messages to.
-func (e *Engine) SetObserveConfig(projectDir, sessionKey string) {
-	e.observeEnabled = true
-	e.observeProjectDir = projectDir
-	e.observeSessionKey = sessionKey
-}
-
 func (e *Engine) SetLanguageSaveFunc(fn func(Language) error) {
 	e.i18n.SetSaveFunc(fn)
-}
-
-// findObserverTarget returns the first platform that implements ObserverTarget,
-// or nil if none do.
-func (e *Engine) findObserverTarget() ObserverTarget {
-	for _, p := range e.platforms {
-		if ot, ok := p.(ObserverTarget); ok {
-			return ot
-		}
-	}
-	return nil
 }
 
 func (e *Engine) SetProviderSaveFunc(fn func(providerName string) error) {
@@ -2349,7 +2322,6 @@ func (e *Engine) Start() error {
 		return startErrs[0] // Return first error
 	}
 
-	e.startObserver()
 	return nil
 }
 
@@ -2360,10 +2332,6 @@ func (e *Engine) Stop() error {
 
 	// Cancel first so late lifecycle callbacks observe shutdown immediately.
 	e.cancel()
-
-	if e.observeCancel != nil {
-		e.observeCancel()
-	}
 
 	// Stop platforms after cancellation so they can unwind against the closed context.
 	var errs []error
@@ -2465,8 +2433,8 @@ func (e *Engine) markPlatformUnavailable(p Platform) bool {
 func (e *Engine) initPlatformCapabilities(p Platform) {
 	if registrar, ok := p.(CommandRegistrar); ok {
 		commands, skillsOmitted := e.menuCommandsForPlatform(p.Name())
-		if skillsOmitted && strings.EqualFold(p.Name(), "telegram") {
-			slog.Info("telegram: omitting skill commands from menu due to command limit", "project", e.name)
+		if skillsOmitted {
+			slog.Info("platform: omitting skill commands from menu due to command limit", "project", e.name, "platform", p.Name())
 		}
 		if err := registrar.RegisterCommands(commands); err != nil {
 			slog.Error("platform command registration failed", "project", e.name, "platform", p.Name(), "error", err)
@@ -9712,68 +9680,17 @@ func (e *Engine) GetAllCommands() []BotCommandInfo {
 	return commands
 }
 
-func (e *Engine) menuCommandsForPlatform(platformName string) ([]BotCommandInfo, bool) {
-	commands := e.GetAllCommands()
-	if !strings.EqualFold(platformName, "telegram") {
-		return commands, false
-	}
-	return telegramMenuCommandsAllOrNone(commands)
-}
-
-func telegramMenuCommandsAllOrNone(commands []BotCommandInfo) ([]BotCommandInfo, bool) {
-	var nonSkill []BotCommandInfo
-	var skill []BotCommandInfo
-	for _, command := range commands {
-		if command.IsSkill {
-			skill = append(skill, command)
-			continue
-		}
-		nonSkill = append(nonSkill, command)
-	}
-
-	if len(telegramMenuEntryNames(append(append([]BotCommandInfo{}, nonSkill...), skill...))) <= telegramBotCommandLimit {
-		return commands, false
-	}
-	return nonSkill, len(skill) > 0
-}
-
-func telegramMenuEntryNames(commands []BotCommandInfo) []string {
-	var names []string
-	seen := make(map[string]bool)
-	for _, command := range commands {
-		name := sanitizeTelegramMenuCommand(command.Command)
-		if name == "" || seen[name] {
-			continue
-		}
-		seen[name] = true
-		names = append(names, name)
-	}
-	return names
-}
-
-func sanitizeTelegramMenuCommand(cmd string) string {
-	cmd = strings.ToLower(cmd)
-	var b strings.Builder
-	for _, c := range cmd {
-		switch {
-		case c >= 'a' && c <= 'z', c >= '0' && c <= '9':
-			b.WriteRune(c)
-		default:
-			b.WriteByte('_')
-		}
-	}
-	result := b.String()
-	for strings.Contains(result, "__") {
-		result = strings.ReplaceAll(result, "__", "_")
-	}
-	result = strings.Trim(result, "_")
-	if len(result) == 0 || result[0] < 'a' || result[0] > 'z' {
-		return ""
-	}
-	if len(result) > 32 {
-		result = result[:32]
-	}
-	return result
+// menuCommandsForPlatform adapts the command list to a platform's native bot
+// menu constraints.
+//
+// The only platform that ever needed a special case here was Telegram, which
+// enforces a hard 100-entry limit on setMyCommands and therefore had its skill
+// commands dropped wholesale when the menu overflowed. Telegram is no longer
+// part of this build, so no registered platform reports skillsOmitted and this
+// is a plain pass-through. It stays as an extension point (and to keep core
+// free of platform names) rather than being inlined at the two call sites.
+func (e *Engine) menuCommandsForPlatform(_ string) ([]BotCommandInfo, bool) {
+	return e.GetAllCommands(), false
 }
 
 func (e *Engine) cmdModel(p Platform, msg *Message, args []string) {
@@ -15024,9 +14941,6 @@ func (e *Engine) cmdSkills(p Platform, msg *Message) {
 		}
 
 		sb.WriteString("\n" + e.i18n.T(MsgSkillsHint))
-		if _, skillsOmitted := e.menuCommandsForPlatform(p.Name()); skillsOmitted && strings.EqualFold(p.Name(), "telegram") {
-			sb.WriteString("\n" + e.i18n.T(MsgSkillsTelegramMenuHint))
-		}
 		e.reply(p, msg.ReplyCtx, sb.String())
 		return
 	}

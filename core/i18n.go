@@ -477,7 +477,6 @@ const (
 	MsgSkillsTitle            MsgKey = "skills_title"
 	MsgSkillsEmpty            MsgKey = "skills_empty"
 	MsgSkillsHint             MsgKey = "skills_hint"
-	MsgSkillsTelegramMenuHint MsgKey = "skills_telegram_menu_hint"
 
 	MsgConfigTitle       MsgKey = "config_title"
 	MsgConfigHint        MsgKey = "config_hint"
@@ -2934,14 +2933,6 @@ var messages = map[MsgKey]map[Language]string{
 		LangJapanese:           "使い方：/<スキル名> [引数...] でスキルを実行します。",
 		LangSpanish:            "Uso: /<nombre-skill> [args...] para invocar un skill.",
 	},
-	MsgSkillsTelegramMenuHint: {
-		LangEnglish:            "Telegram's command menu is full, so skill commands are not listed there. You can still invoke them by typing /<skill-name> manually.",
-		LangChinese:            "Telegram 的命令菜单已满，因此 Skill 不会显示在那里。你仍然可以手动输入 /<skill名称> 来调用它们。",
-		LangTraditionalChinese: "Telegram 的命令選單已滿，因此 Skill 不會顯示在那裡。你仍然可以手動輸入 /<skill名稱> 來調用它們。",
-		LangJapanese:           "Telegram のコマンドメニューがいっぱいのため、スキルコマンドはそこに表示されません。手動で /<スキル名> と入力すれば実行できます。",
-		LangSpanish:            "El menú de comandos de Telegram está lleno, así que los skills no aparecen allí. Aun así puedes invocarlos escribiendo /<nombre-skill> manualmente.",
-	},
-
 	MsgConfigTitle: {
 		LangEnglish:            "⚙️ **Runtime Configuration**\n\n",
 		LangChinese:            "⚙️ **运行时配置**\n\n",

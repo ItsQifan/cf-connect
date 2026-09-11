@@ -222,10 +222,6 @@ var topLevelCommandHandlers = map[string]func([]string){
 	"sessions":  runSessions,
 	"agent-sid": runAgentSID,
 	"daemon":    runDaemon,
-	"feishu":    runFeishu,
-	"tuitui":    runTuiTui,
-	"weixin":    runWeixin,
-	"yuanbao":   runYuanbao,
 	"doctor":    runDoctor,
 	"web":       runWeb,
 }
@@ -471,41 +467,10 @@ func main() {
 			slog.Info("multi-workspace mode enabled", "project", proj.Name, "base_dir", baseDir)
 		}
 
-		// Wire terminal observation (--observe / [projects.observe])
-		observeEnabled := rootOpts.observe
-		obsChan := rootOpts.observeChannel
-		if proj.Observe != nil {
-			if !observeEnabled && proj.Observe.Enabled {
-				observeEnabled = true
-			}
-			if obsChan == "" && proj.Observe.Channel != "" {
-				obsChan = proj.Observe.Channel
-			}
-		}
-		if observeEnabled {
-			if obsChan == "" {
-				slog.Error("observe: channel is required (use --observe-channel or set channel in [projects.observe])")
-				os.Exit(1)
-			}
-			hasSlack := false
-			for _, p := range platforms {
-				if p.Name() == "slack" {
-					hasSlack = true
-					break
-				}
-			}
-			if !hasSlack {
-				slog.Warn("observe requires a Slack platform; ignoring")
-			} else {
-				projectDir := resolveClaudeProjectDir(workDir)
-				if projectDir == "" {
-					slog.Warn("observe: could not find Claude Code project directory", "workDir", workDir)
-				} else {
-					sessionKey := fmt.Sprintf("slack:%s", obsChan)
-					engine.SetObserveConfig(projectDir, sessionKey)
-				}
-			}
-		}
+		// NOTE: terminal session observation (--observe / [projects.observe])
+		// was removed together with the Slack platform: it was the only
+		// platform implementing core.ObserverTarget, so the feature had no
+		// remaining target.
 
 		// Wire global custom commands
 		for _, c := range cfg.Commands {
@@ -1111,49 +1076,6 @@ func main() {
 		if bridgeSrv != nil {
 			mgmtSrv.SetBridgeServer(bridgeSrv)
 		}
-		mgmtSrv.SetSetupFeishuSave(func(req core.FeishuSetupSaveRequest) error {
-			platType := req.PlatformType
-			if platType == "" {
-				platType = "feishu"
-			}
-			_, err := config.EnsureProjectWithFeishuPlatform(config.EnsureProjectWithFeishuOptions{
-				ProjectName:  req.ProjectName,
-				PlatformType: platType,
-				WorkDir:      req.WorkDir,
-				AgentType:    req.AgentType,
-			})
-			if err != nil {
-				return fmt.Errorf("ensure project: %w", err)
-			}
-			_, err = config.SaveFeishuPlatformCredentials(config.FeishuCredentialUpdateOptions{
-				ProjectName:       req.ProjectName,
-				PlatformType:      platType,
-				AppID:             req.AppID,
-				AppSecret:         req.AppSecret,
-				OwnerOpenID:       req.OwnerOpenID,
-				SetAllowFromEmpty: true,
-			})
-			return err
-		})
-		mgmtSrv.SetSetupWeixinSave(func(req core.WeixinSetupSaveRequest) error {
-			_, err := config.EnsureProjectWithWeixinPlatform(config.EnsureProjectWithWeixinOptions{
-				ProjectName: req.ProjectName,
-				WorkDir:     req.WorkDir,
-				AgentType:   req.AgentType,
-			})
-			if err != nil {
-				return fmt.Errorf("ensure project: %w", err)
-			}
-			_, err = config.SaveWeixinPlatformCredentials(config.WeixinCredentialUpdateOptions{
-				ProjectName:       req.ProjectName,
-				Token:             req.Token,
-				BaseURL:           req.BaseURL,
-				AccountID:         req.IlinkBotID,
-				ScannedUserID:     req.IlinkUserID,
-				SetAllowFromEmpty: true,
-			})
-			return err
-		})
 		mgmtSrv.SetAddPlatformToProject(func(projectName, platType string, opts map[string]any, workDir, agentType string) error {
 			if opts == nil {
 				opts = map[string]any{}
@@ -1394,14 +1316,12 @@ func runTopLevelCommand(args []string) bool {
 }
 
 type rootCLIOptions struct {
-	configPath     string
-	force          bool
-	observe        bool
-	observeChannel string
-	logMaxSize     string
-	logMaxBackups  int
-	showVersion    bool
-	args           []string
+	configPath    string
+	force         bool
+	logMaxSize    string
+	logMaxBackups int
+	showVersion   bool
+	args          []string
 }
 
 func parseRootCLIOptions(args []string) (rootCLIOptions, error) {
@@ -1411,8 +1331,6 @@ func parseRootCLIOptions(args []string) (rootCLIOptions, error) {
 
 	configPath := fs.String("config", "", "path to config file (default: ./config.toml or ~/.cc-connect/config.toml)")
 	force := fs.Bool("force", false, "kill any existing instance with the same config before starting")
-	observe := fs.Bool("observe", false, "observe native terminal Claude Code sessions and forward to Slack")
-	observeChannel := fs.String("observe-channel", "", "Slack channel ID to forward terminal observations to (requires --observe)")
 	logMaxSize := fs.String("log-max-size", "", "max bytes for the rotating log file (e.g. 10MB, 512K, 10485760); overrides CC_LOG_MAX_SIZE env var (default: 10MB)")
 	logMaxBackups := fs.Int("log-max-backups", 0, "number of rotated log files to retain (.log.1 .. .log.N); overrides CC_LOG_MAX_BACKUPS env var (default: 3)")
 	showVersion := fs.Bool("version", false, "print version and exit")
@@ -1422,14 +1340,12 @@ func parseRootCLIOptions(args []string) (rootCLIOptions, error) {
 	}
 
 	return rootCLIOptions{
-		configPath:     *configPath,
-		force:          *force,
-		observe:        *observe,
-		observeChannel: *observeChannel,
-		logMaxSize:     *logMaxSize,
-		logMaxBackups:  *logMaxBackups,
-		showVersion:    *showVersion,
-		args:           fs.Args(),
+		configPath:    *configPath,
+		force:         *force,
+		logMaxSize:    *logMaxSize,
+		logMaxBackups: *logMaxBackups,
+		showVersion:   *showVersion,
+		args:          fs.Args(),
 	}, nil
 }
 
@@ -1522,21 +1438,15 @@ func applyProjectStateOverride(projectName string, agent core.Agent, configuredW
 	return override
 }
 
-// resolveClaudeProjectDir returns the Claude Code project directory for a given
-// work directory, or "" if it doesn't exist.
-func resolveClaudeProjectDir(workDir string) string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return ""
+// containsString reports whether want is present in list.
+// (Was previously declared in feishu.go, which has been removed.)
+func containsString(list []string, want string) bool {
+	for _, v := range list {
+		if v == want {
+			return true
+		}
 	}
-	// Claude Code encodes paths by replacing os.PathSeparator with "-"
-	// e.g. /home/leigh/workspace/cc-connect -> -home-leigh-workspace-cc-connect
-	encoded := strings.ReplaceAll(workDir, string(os.PathSeparator), "-")
-	dir := filepath.Join(homeDir, ".claude", "projects", encoded)
-	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-		return ""
-	}
-	return dir
+	return false
 }
 
 // resolveConfigPath determines which config file to use.

@@ -6291,7 +6291,11 @@ func TestCmdSkills_UsesTelegramSafeNamesOnTelegramPlatform(t *testing.T) {
 	}
 }
 
-func TestMenuCommandsForPlatform_TelegramOmitsAllSkillsWhenMenuWouldOverflow(t *testing.T) {
+// TestMenuCommandsForPlatform_PassesThroughWithoutMenuLimit pins the post-trim
+// contract: with Telegram gone there is no platform with a native menu-size
+// limit left, so the planner must hand back the full command list unmodified
+// and never report skills as omitted.
+func TestMenuCommandsForPlatform_PassesThroughWithoutMenuLimit(t *testing.T) {
 	e := NewEngine("test", &stubAgent{}, nil, "", LangEnglish)
 	temp := t.TempDir()
 	for i := 0; i < 80; i++ {
@@ -6306,20 +6310,28 @@ func TestMenuCommandsForPlatform_TelegramOmitsAllSkillsWhenMenuWouldOverflow(t *
 	}
 	e.skills.SetDirs([]string{temp})
 
-	commands, skillsOmitted := e.menuCommandsForPlatform("telegram")
+	want := e.GetAllCommands()
+	commands, skillsOmitted := e.menuCommandsForPlatform("dingtalk")
 
-	if !skillsOmitted {
-		t.Fatalf("expected Telegram menu planner to omit skill commands when command menu overflows")
+	if skillsOmitted {
+		t.Fatalf("no platform has a menu-size limit any more; skills must not be omitted")
 	}
+	if len(commands) != len(want) {
+		t.Fatalf("menu commands = %d, want pass-through of %d", len(commands), len(want))
+	}
+	var skillCount int
 	for _, cmd := range commands {
 		if cmd.IsSkill {
-			t.Fatalf("menu commands should omit skills when overflowed, got %+v", cmd)
+			skillCount++
 		}
+	}
+	if skillCount == 0 {
+		t.Fatalf("expected skill commands to survive the pass-through")
 	}
 }
 
-func TestCmdSkills_TelegramShowsManualInvocationHintWhenSkillsAreOmittedFromMenu(t *testing.T) {
-	p := &stubPlatformEngine{n: "telegram"}
+func TestCmdSkills_NoOverflowHintWithoutMenuLimit(t *testing.T) {
+	p := &stubPlatformEngine{n: "dingtalk"}
 	e := NewEngine("test", &stubAgent{}, []Platform{p}, "", LangEnglish)
 	temp := t.TempDir()
 	for i := 0; i < 80; i++ {
@@ -6334,13 +6346,13 @@ func TestCmdSkills_TelegramShowsManualInvocationHintWhenSkillsAreOmittedFromMenu
 	}
 	e.skills.SetDirs([]string{temp})
 
-	e.cmdSkills(p, &Message{SessionKey: "telegram:user1", ReplyCtx: "ctx"})
+	e.cmdSkills(p, &Message{SessionKey: "dingtalk:user1", ReplyCtx: "ctx"})
 
 	if len(p.sent) != 1 {
 		t.Fatalf("sent messages = %d, want 1", len(p.sent))
 	}
-	if !strings.Contains(p.sent[0], "command menu is full") {
-		t.Fatalf("skills text = %q, want Telegram overflow hint", p.sent[0])
+	if strings.Contains(p.sent[0], "command menu is full") {
+		t.Fatalf("skills text = %q, must not carry the removed Telegram overflow hint", p.sent[0])
 	}
 }
 
@@ -13747,47 +13759,6 @@ func TestExtractSessionKeyParts(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestSetObserveConfig(t *testing.T) {
-	e := NewEngine("test", &stubAgent{}, nil, "", LangEnglish)
-	e.SetObserveConfig("/tmp/test-project", "slack:C123:U456")
-	if !e.observeEnabled {
-		t.Fatal("observe should be enabled")
-	}
-	if e.observeProjectDir != "/tmp/test-project" {
-		t.Fatalf("unexpected project dir: %s", e.observeProjectDir)
-	}
-}
-
-func TestObserveStartsOnlyWithSlack(t *testing.T) {
-	stub := &stubPlatformWithObserve{stubPlatform: stubPlatform{n: "slack"}}
-	e := NewEngine("test", &stubAgent{}, []Platform{stub}, "", LangEnglish)
-	e.SetObserveConfig("/tmp/fake-project", "slack:C123:U456")
-
-	target := e.findObserverTarget()
-	if target == nil {
-		t.Fatal("expected to find observer target for Slack")
-	}
-}
-
-func TestObserveNoTargetWithoutSlack(t *testing.T) {
-	stub := &stubPlatform{n: "telegram"}
-	e := NewEngine("test", &stubAgent{}, []Platform{stub}, "", LangEnglish)
-	e.SetObserveConfig("/tmp/fake-project", "slack:C123:U456")
-
-	target := e.findObserverTarget()
-	if target != nil {
-		t.Fatal("expected no observer target without Slack")
-	}
-}
-
-type stubPlatformWithObserve struct {
-	stubPlatform
-}
-
-func (s *stubPlatformWithObserve) SendObservation(_ context.Context, _, _ string) error {
-	return nil
 }
 
 // --- Instant Reply tests ---
