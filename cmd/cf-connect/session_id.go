@@ -233,21 +233,21 @@ func fileModTime(path string) int64 {
 }
 
 func printAgentSIDUsage() {
-	fmt.Println(`Usage: cc-connect agent-sid [options]
+	fmt.Println(`Usage: cf-connect agent-sid [options]
 
 Print the agent session ID (e.g. Claude Code, Codex, Gemini CLI) for the
 current session. This is the ID used for --resume.
 
-The command reads from the persisted session file; no running cc-connect
+The command reads from the persisted session file; no running cf-connect
 instance is required.
 
 Options:
   -p, --project <name>       Project name (auto-detected from CC_PROJECT env)
   -s, --session-key <key>    Session key  (auto-detected from CC_SESSION_KEY env)
-      --data-dir <path>      Data directory (default: ~/.cc-connect)
+      --data-dir <path>      Data directory (default: ~/.cf-connect)
   -h, --help                 Show this help
 
 Examples:
-  cc-connect agent-sid                         Auto-detect from env (inside a session)
-  cc-connect agent-sid -p mybot -s "discord:123:456"`)
+  cf-connect agent-sid                         Auto-detect from env (inside a session)
+  cf-connect agent-sid -p mybot -s "discord:123:456"`)
 }

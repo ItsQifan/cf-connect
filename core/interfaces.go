@@ -108,7 +108,7 @@ type PlatformPromptInjector interface {
 }
 
 // AgentSystemPrompt returns the system prompt fragment that informs agents about
-// cc-connect capabilities (cron scheduling, etc.).
+// cf-connect capabilities (cron scheduling, etc.).
 // The prompt is designed to be appended to the agent's existing system prompt.
 //
 // This is a back-compat wrapper that always returns English; the underlying
@@ -120,13 +120,13 @@ func AgentSystemPrompt() string {
 }
 
 // agentSystemPromptHeader is the static English preamble that introduces the
-// cc-connect bridge and the ## Available tools heading. It is not localized:
-// the preamble is infrastructure wording ("You are running inside cc-connect…")
+// cf-connect bridge and the ## Available tools heading. It is not localized:
+// the preamble is infrastructure wording ("You are running inside cf-connect…")
 // rather than tool documentation, and keeping it stable across languages
 // preserves the meaning of the marker the engine searches for when refreshing
 // the prompt file across upgrades.
-const agentSystemPromptHeader = `You are running inside cc-connect, a bridge that connects you to messaging platforms.
-Your normal text responses are automatically delivered to the user — just reply normally, do NOT use cc-connect send for ordinary text replies.
+const agentSystemPromptHeader = `You are running inside cf-connect, a bridge that connects you to messaging platforms.
+Your normal text responses are automatically delivered to the user — just reply normally, do NOT use cf-connect send for ordinary text replies.
 
 ## Available tools
 `
@@ -141,7 +141,7 @@ const agentSystemPromptFooter = `
 If the current turn warrants no user-visible response — e.g. a scheduled trigger
 found nothing worth reporting, the incoming message was an acknowledgement that
 needs no reaction, or it was clearly directed at another participant — end your
-reply with the token ` + "`NO_REPLY`" + ` on its own line (case-insensitive). cc-connect strips
+reply with the token ` + "`NO_REPLY`" + ` on its own line (case-insensitive). cf-connect strips
 the trailing marker before delivery:
 - If the whole reply is just ` + "`NO_REPLY`" + ` (or the text becomes empty after the
   marker is stripped), nothing is delivered — no preview, no done reaction, no
@@ -152,7 +152,7 @@ the trailing marker before delivery:
 Use this sparingly; when in doubt, send a brief reply instead.
 `
 
-// AgentSystemPromptForLang returns the cc-connect system prompt with the
+// AgentSystemPromptForLang returns the cf-connect system prompt with the
 // four user-facing tool sections (send / cron / timer / relay) rendered in
 // the given language. The header, the "## Available tools" heading, and the
 // silent-reply footer stay in English on purpose — see the comments on
@@ -162,7 +162,7 @@ Use this sparingly; when in doubt, send a brief reply instead.
 // unsupported language code, or a future PR that adds a new language
 // without translating every tool yet), that section silently falls back to
 // the English version via messages[key][LangEnglish]. This matches the
-// fallback behaviour of (*I18n).T so cc-connect never refuses to start
+// fallback behaviour of (*I18n).T so cf-connect never refuses to start
 // because of an incomplete translation (per the owner decision in
 // doc-20260823-ws0eux).
 //

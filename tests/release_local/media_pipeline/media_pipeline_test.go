@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chenhg5/cc-connect/core"
+	"github.com/ItsQifan/cf-connect/core"
 )
 
 type sendRecord struct {

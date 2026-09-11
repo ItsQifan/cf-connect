@@ -54,7 +54,7 @@ type AgentDoctorInfo interface {
 
 // PlatformHealthInfo is a per-platform health snapshot reported by
 // implementations of the optional PlatformHealth interface. Used by
-// /status, the management API, and cc-connect doctor to surface
+// /status, the management API, and cf-connect doctor to surface
 // runtime degradation (e.g. issue #1618's "bot open_id unresolved"
 // state on Feishu/Lark).
 type PlatformHealthInfo struct {
@@ -428,7 +428,7 @@ func checkNetwork(ctx context.Context) []DoctorCheckResult {
 
 	// Check data directory
 	if home, err := os.UserHomeDir(); err == nil {
-		dataDir := filepath.Join(home, ".cc-connect")
+		dataDir := filepath.Join(home, ".cf-connect")
 		if info, err := os.Stat(dataDir); err != nil {
 			results = append(results, DoctorCheckResult{
 				Name:   "Data Directory",

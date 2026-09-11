@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chenhg5/cc-connect/core"
+	"github.com/ItsQifan/cf-connect/core"
 )
 
 // TestBuildRunArgs_YoloPermissionFlagIsConfigurable is the regression test for

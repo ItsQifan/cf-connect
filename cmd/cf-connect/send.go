@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/chenhg5/cc-connect/config"
-	"github.com/chenhg5/cc-connect/core"
+	"github.com/ItsQifan/cf-connect/config"
+	"github.com/ItsQifan/cf-connect/core"
 )
 
 func runSend(args []string) {
@@ -32,7 +32,7 @@ func runSend(args []string) {
 
 	sockPath := resolveSocketPath(dataDir)
 	if _, err := os.Stat(sockPath); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Error: cc-connect is not running (socket not found: %s)\n", sockPath)
+		fmt.Fprintf(os.Stderr, "Error: cf-connect is not running (socket not found: %s)\n", sockPath)
 		os.Exit(1)
 	}
 
@@ -202,7 +202,7 @@ func parseSendArgs(args []string) (core.SendRequest, string, error) {
 	// req.Files would force the engine to dispatch them via FileSender —
 	// that loses the native voice-bubble / video-bubble path on platforms
 	// that implement AudioSender / VideoSender (e.g. Feishu's ffmpeg
-	// transcode for mp3 → opus). See cc-connect internal task
+	// transcode for mp3 → opus). See cf-connect internal task
 	// t-20260615-cqjbk1.
 	req.Files = files
 	req.Audios = audioFiles
@@ -281,7 +281,7 @@ func attachmentMatchesMediaType(mimeType, fileName, mediaType string) bool {
 }
 
 // loadSendConfigBestEffort loads config.toml — resolved the same way the
-// daemon resolves it — so the standalone `cc-connect send` subcommand (a
+// daemon resolves it — so the standalone `cf-connect send` subcommand (a
 // separate process that otherwise has no config) can honour
 // max_attachment_size_mb. Errors are ignored and nil is returned, so a missing
 // or invalid config never breaks sending; the caller then falls back to the
@@ -352,23 +352,23 @@ func resolveSocketPath(dataDir string) string {
 		return filepath.Join(envDataDir, "run", "api.sock")
 	}
 	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".cc-connect", "run", "api.sock")
+		return filepath.Join(home, ".cf-connect", "run", "api.sock")
 	}
-	return filepath.Join(".cc-connect", "run", "api.sock")
+	return filepath.Join(".cf-connect", "run", "api.sock")
 }
 
 func printSendUsage() {
-	fmt.Println(`Usage: cc-connect send [options] <message>
-       cc-connect send [options] -m <message>
-       cc-connect send [options] --stdin < file
-       cc-connect send [options] --image <path>
-       cc-connect send [options] --file <path>
-       cc-connect send [options] --audio <path>
-       cc-connect send [options] --video <path>
-       cc-connect send [options] --tts <text>
-       echo "msg" | cc-connect send [options] --stdin
+	fmt.Println(`Usage: cf-connect send [options] <message>
+       cf-connect send [options] -m <message>
+       cf-connect send [options] --stdin < file
+       cf-connect send [options] --image <path>
+       cf-connect send [options] --file <path>
+       cf-connect send [options] --audio <path>
+       cf-connect send [options] --video <path>
+       cf-connect send [options] --tts <text>
+       echo "msg" | cf-connect send [options] --stdin
 
-Send a message, attachment, or synthesized voice message to an active cc-connect session.
+Send a message, attachment, or synthesized voice message to an active cf-connect session.
 
 Options:
   -m, --message <text>     Message to send (preferred over positional args)
@@ -384,18 +384,18 @@ Options:
       --at-all             @ everyone (DingTalk)
   -p, --project <name>     Target project (optional if only one project)
   -s, --session <key>      Target session key (optional, picks first active)
-      --data-dir <path>    Data directory (default: ~/.cc-connect)
+      --data-dir <path>    Data directory (default: ~/.cf-connect)
   -h, --help               Show this help
 
 Examples:
-  cc-connect send "Daily summary: ..."
-  cc-connect send -m "Build completed successfully"
-  cc-connect send --message "Chart generated" --image /tmp/chart.png
-  cc-connect send --file /tmp/report.pdf
-  cc-connect send --video /tmp/demo.mp4
-  cc-connect send --audio /tmp/voice.opus
-  cc-connect send --tts "Hello from cc-connect"
-  cc-connect send --stdin <<'EOF'
+  cf-connect send "Daily summary: ..."
+  cf-connect send -m "Build completed successfully"
+  cf-connect send --message "Chart generated" --image /tmp/chart.png
+  cf-connect send --file /tmp/report.pdf
+  cf-connect send --video /tmp/demo.mp4
+  cf-connect send --audio /tmp/voice.opus
+  cf-connect send --tts "Hello from cf-connect"
+  cf-connect send --stdin <<'EOF'
     Long message with "special" chars, $variables, and newlines
   EOF`)
 }

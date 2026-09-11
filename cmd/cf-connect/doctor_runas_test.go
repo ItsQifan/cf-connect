@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chenhg5/cc-connect/core"
+	"github.com/ItsQifan/cf-connect/core"
 )
 
 func TestDefaultAuditDir_HomeSuffix(t *testing.T) {
@@ -14,8 +14,8 @@ func TestDefaultAuditDir_HomeSuffix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("defaultAuditDir error: %v", err)
 	}
-	if !strings.HasSuffix(dir, "/.cc-connect/audits") {
-		t.Errorf("audit dir = %q, want suffix /.cc-connect/audits", dir)
+	if !strings.HasSuffix(dir, "/.cf-connect/audits") {
+		t.Errorf("audit dir = %q, want suffix /.cf-connect/audits", dir)
 	}
 }
 

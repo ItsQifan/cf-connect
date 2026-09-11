@@ -1,10 +1,10 @@
-// Package mocks provides mock implementations for testing cc-connect components.
+// Package mocks provides mock implementations for testing cf-connect components.
 package mocks
 
 import (
 	"context"
 
-	"github.com/chenhg5/cc-connect/core"
+	"github.com/ItsQifan/cf-connect/core"
 	"github.com/stretchr/testify/mock"
 )
 

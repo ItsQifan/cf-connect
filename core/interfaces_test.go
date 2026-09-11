@@ -30,7 +30,7 @@ func TestAgentSystemPrompt_EnglishDefault(t *testing.T) {
 // Issue #1655 tool sections (send / cron / timer / relay) has at least an
 // English entry. Without English entries the engine would write
 // "[agent_send_tool_prompt]" placeholders into the agent's memory file, which
-// would break every cc-connect installation that didn't override its
+// would break every cf-connect installation that didn't override its
 // language. This is the "fallback to en on missing key" requirement.
 func TestAgentSystemPromptForLang_AllToolKeysExist(t *testing.T) {
 	keys := []MsgKey{
@@ -56,7 +56,7 @@ func TestAgentSystemPromptForLang_AllToolKeysExist(t *testing.T) {
 // "cron", "timer", "send", and "relay" so it knows the bridge exposes them.
 func TestAgentSystemPromptForLang_EnglishHasAllFourTools(t *testing.T) {
 	got := AgentSystemPromptForLang(LangEnglish)
-	for _, marker := range []string{"cc-connect send", "cc-connect cron", "cc-connect timer", "cc-connect relay"} {
+	for _, marker := range []string{"cf-connect send", "cf-connect cron", "cf-connect timer", "cf-connect relay"} {
 		if !strings.Contains(got, marker) {
 			t.Errorf("English system prompt missing %q", marker)
 		}

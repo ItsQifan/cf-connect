@@ -1,6 +1,6 @@
 //go:build performance
 
-// Package performance contains benchmark tests for cc-connect.
+// Package performance contains benchmark tests for cf-connect.
 // These tests measure latency, throughput, and resource usage.
 //
 // Run with: go test -bench=. -benchmem -tags=performance ./tests/performance/...
@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chenhg5/cc-connect/core"
-	"github.com/chenhg5/cc-connect/tests/mocks/fake"
+	"github.com/ItsQifan/cf-connect/core"
+	"github.com/ItsQifan/cf-connect/tests/mocks/fake"
 )
 
 // ---------------------------------------------------------------------------

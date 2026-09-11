@@ -17,7 +17,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/chenhg5/cc-connect/core"
+	"github.com/ItsQifan/cf-connect/core"
 )
 
 // opencodeSession manages multi-turn conversations with the OpenCode CLI.
@@ -122,7 +122,7 @@ func (s *opencodeSession) stageImages(prompt string, images []core.ImageAttachme
 		return prompt, nil, nil
 	}
 
-	imgDir := filepath.Join(s.workDir, ".cc-connect", "images")
+	imgDir := filepath.Join(s.workDir, ".cf-connect", "images")
 	if err := os.MkdirAll(imgDir, 0o755); err != nil {
 		return "", nil, fmt.Errorf("opencodeSession: create image dir: %w", err)
 	}

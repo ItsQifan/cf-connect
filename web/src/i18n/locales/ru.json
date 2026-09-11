@@ -167,8 +167,8 @@
     "rawConfig": "Сырой конфиг"
   },
   "login": {
-    "title": "CC-Connect Admin",
-    "subtitle": "Подключитесь к вашему серверу CC-Connect",
+    "title": "CF-Connect Admin",
+    "subtitle": "Подключитесь к вашему серверу CF-Connect",
     "token": "API-токен",
     "serverUrl": "URL сервера",
     "connect": "Подключиться",

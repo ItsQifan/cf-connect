@@ -17,10 +17,10 @@ import (
 	"syscall"
 	"time"
 
-	ccconnect "github.com/chenhg5/cc-connect"
-	"github.com/chenhg5/cc-connect/config"
-	"github.com/chenhg5/cc-connect/core"
-	"github.com/chenhg5/cc-connect/daemon"
+	ccconnect "github.com/ItsQifan/cf-connect"
+	"github.com/ItsQifan/cf-connect/config"
+	"github.com/ItsQifan/cf-connect/core"
+	"github.com/ItsQifan/cf-connect/daemon"
 	// Agent and platform imports are in separate plugin_*.go files
 	// controlled by build tags. See Makefile for selective compilation.
 )
@@ -37,7 +37,7 @@ var (
 var globalAPIServer *core.APIServer
 
 // defaultResetOnIdleMins is applied when a project does not set
-// reset_on_idle_mins. After this many minutes of user inactivity, cc-connect
+// reset_on_idle_mins. After this many minutes of user inactivity, cf-connect
 // rotates to a fresh session for the next message instead of resuming the
 // previous transcript via --continue. This avoids "context drift" where stale
 // chat history (failed commands, debugging noise, abandoned tangents) is
@@ -270,7 +270,7 @@ func main() {
 	}
 
 	if rootOpts.showVersion {
-		fmt.Printf("cc-connect %s\ncommit:  %s\nbuilt:   %s\n", version, commit, buildTime)
+		fmt.Printf("cf-connect %s\ncommit:  %s\nbuilt:   %s\n", version, commit, buildTime)
 		return
 	}
 
@@ -284,7 +284,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	core.VersionInfo = fmt.Sprintf("cc-connect %s\ncommit: %s\nbuilt: %s", version, commit, buildTime)
+	core.VersionInfo = fmt.Sprintf("cf-connect %s\ncommit: %s\nbuilt: %s", version, commit, buildTime)
 	core.CurrentVersion = version
 	core.CurrentCommit = commit
 	core.CurrentBuildTime = buildTime
@@ -313,7 +313,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("Created default config at %s\n", configPath)
-		fmt.Println("Please edit this file to add your agent and platform credentials, then run cc-connect again.")
+		fmt.Println("Please edit this file to add your agent and platform credentials, then run cf-connect again.")
 		os.Exit(0)
 	}
 
@@ -329,7 +329,7 @@ func main() {
 	if len(cfg.Projects) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: no projects configured in %s\n", configPath)
 		fmt.Fprintln(os.Stderr, "Add at least one [[project]] section to your config.toml, or run:")
-		fmt.Fprintln(os.Stderr, "  cc-connect init")
+		fmt.Fprintln(os.Stderr, "  cf-connect init")
 		os.Exit(1)
 	}
 
@@ -1214,7 +1214,7 @@ func main() {
 		apiSrv.Start()
 	}
 
-	slog.Info("cc-connect is running", "projects", len(engines))
+	slog.Info("cf-connect is running", "projects", len(engines))
 
 	// After startup, check if we were restarted and queue the success
 	// notification. The engine dispatches it on the first OnPlatformReady
@@ -1322,7 +1322,7 @@ func parseRootCLIOptions(args []string) (rootCLIOptions, error) {
 	fs.SetOutput(os.Stderr)
 	fs.Usage = printUsage
 
-	configPath := fs.String("config", "", "path to config file (default: ./config.toml or ~/.cc-connect/config.toml)")
+	configPath := fs.String("config", "", "path to config file (default: ./config.toml or ~/.cf-connect/config.toml)")
 	force := fs.Bool("force", false, "kill any existing instance with the same config before starting")
 	logMaxSize := fs.String("log-max-size", "", "max bytes for the rotating log file (e.g. 10MB, 512K, 10485760); overrides CC_LOG_MAX_SIZE env var (default: 10MB)")
 	logMaxBackups := fs.Int("log-max-backups", 0, "number of rotated log files to retain (.log.1 .. .log.N); overrides CC_LOG_MAX_BACKUPS env var (default: 3)")
@@ -1443,7 +1443,7 @@ func containsString(list []string, want string) bool {
 }
 
 // resolveConfigPath determines which config file to use.
-// Priority: explicit flag → ./config.toml → ~/.cc-connect/config.toml
+// Priority: explicit flag → ./config.toml → ~/.cf-connect/config.toml
 func resolveConfigPath(explicit string) string {
 	if explicit != "" {
 		return explicit
@@ -1452,7 +1452,7 @@ func resolveConfigPath(explicit string) string {
 		return "config.toml"
 	}
 	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".cc-connect", "config.toml")
+		return filepath.Join(home, ".cf-connect", "config.toml")
 	}
 	return "config.toml"
 }
@@ -1462,8 +1462,8 @@ func bootstrapConfig(path string) error {
 		return err
 	}
 
-	const tmpl = `# cc-connect configuration
-# Docs: https://github.com/chenhg5/cc-connect
+	const tmpl = `# cf-connect configuration
+# Docs: https://github.com/ItsQifan/cf-connect
 
 [log]
 level = "info"
@@ -1490,7 +1490,7 @@ app_id = "your-feishu-app-id"
 app_secret = "your-feishu-app-secret"
 
 # For more platforms (DingTalk, Telegram, Slack, Discord, LINE, WeChat Work)
-# see: https://github.com/chenhg5/cc-connect/blob/main/config.example.toml
+# see: https://github.com/ItsQifan/cf-connect/blob/main/config.example.toml
 `
 	return os.WriteFile(path, []byte(tmpl), 0o644)
 }
@@ -1515,21 +1515,21 @@ func printUsage() {
   Supports: Claude Code, Codex, Cursor, Gemini CLI, Qoder CLI, OpenCode
   Platforms: Feishu, TuiTui, Telegram, Slack, DingTalk, Discord, LINE, WeChat Work, Weixin, QQ, QQ Bot
 
-  GitHub:  https://github.com/chenhg5/cc-connect
-  Docs:    https://github.com/chenhg5/cc-connect/blob/main/INSTALL.md
+  GitHub:  https://github.com/ItsQifan/cf-connect
+  Docs:    https://github.com/ItsQifan/cf-connect/blob/main/INSTALL.md
 
 Usage:
-  cc-connect [flags]
-  cc-connect <command> [args]
+  cf-connect [flags]
+  cf-connect <command> [args]
 
 Flags:
-  --config <path>    Path to config file (default: ./config.toml or ~/.cc-connect/config.toml)
+  --config <path>    Path to config file (default: ./config.toml or ~/.cf-connect/config.toml)
   --force            Kill any existing instance with the same config before starting
   --version          Print version and exit
   --help             Show this help message
 
 Commands:
-  daemon             Manage cc-connect as a background service (systemd/launchd/schtasks)
+  daemon             Manage cf-connect as a background service (systemd/launchd/schtasks)
     install          Install and start the daemon service
     uninstall        Remove the daemon service
     start            Start the daemon
@@ -1588,18 +1588,18 @@ Commands:
   config-example     (deprecated: use 'config example' instead)
 
 Examples:
-  cc-connect                          Start with default config
-  cc-connect --config /path/to.toml   Start with a specific config file
-  cc-connect daemon install           Install as a system service
-  cc-connect daemon logs -f           Follow daemon logs
-  cc-connect send -m "hello"          Send a message to the active session
-  cc-connect cron list                List all scheduled tasks
-  cc-connect feishu setup             Setup Feishu/Lark bot credentials
-  cc-connect weixin setup             Setup Weixin (ilink) with QR or --token
-  cc-connect yuanbao setup            Setup Yuanbao bot with --token app_key:app_secret
-  cc-connect update                   Update to the latest version
-  cc-connect config format            Format the config file
-  cc-connect config example > c.toml  Save example config to a file
+  cf-connect                          Start with default config
+  cf-connect --config /path/to.toml   Start with a specific config file
+  cf-connect daemon install           Install as a system service
+  cf-connect daemon logs -f           Follow daemon logs
+  cf-connect send -m "hello"          Send a message to the active session
+  cf-connect cron list                List all scheduled tasks
+  cf-connect feishu setup             Setup Feishu/Lark bot credentials
+  cf-connect weixin setup             Setup Weixin (ilink) with QR or --token
+  cf-connect yuanbao setup            Setup Yuanbao bot with --token app_key:app_secret
+  cf-connect update                   Update to the latest version
+  cf-connect config format            Format the config file
+  cf-connect config example > c.toml  Save example config to a file
 
 `, v, updateHint)
 }

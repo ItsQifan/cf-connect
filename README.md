@@ -1,22 +1,22 @@
 <p align="center">
-  <img src="./docs/images/banner.svg" alt="CC-Connect Banner" width="800"/>
+  <img src="./docs/images/banner.svg" alt="CF-Connect Banner" width="800"/>
 </p>
 
 <p align="center">
-  <a href="https://github.com/chenhg5/cc-connect/actions/workflows/ci.yml">
-    <img src="https://github.com/chenhg5/cc-connect/actions/workflows/ci.yml/badge.svg" alt="CI Status"/>
+  <a href="https://github.com/ItsQifan/cf-connect/actions/workflows/ci.yml">
+    <img src="https://github.com/ItsQifan/cf-connect/actions/workflows/ci.yml/badge.svg" alt="CI Status"/>
   </a>
-  <a href="https://github.com/chenhg5/cc-connect/releases">
-    <img src="https://img.shields.io/github/v/release/chenhg5/cc-connect?include_prereleases" alt="Release"/>
+  <a href="https://github.com/ItsQifan/cf-connect/releases">
+    <img src="https://img.shields.io/github/v/release/chenhg5/cf-connect?include_prereleases" alt="Release"/>
   </a>
-  <a href="https://www.npmjs.com/package/cc-connect">
-    <img src="https://img.shields.io/npm/dm/cc-connect?logo=npm" alt="npm downloads"/>
+  <a href="https://www.npmjs.com/package/cf-connect">
+    <img src="https://img.shields.io/npm/dm/cf-connect?logo=npm" alt="npm downloads"/>
   </a>
-  <a href="https://github.com/chenhg5/cc-connect/blob/main/LICENSE">
+  <a href="https://github.com/ItsQifan/cf-connect/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"/>
   </a>
-  <a href="https://goreportcard.com/report/github.com/chenhg5/cc-connect">
-    <img src="https://goreportcard.com/badge/github.com/chenhg5/cc-connect" alt="Go Report Card"/>
+  <a href="https://goreportcard.com/report/github.com/ItsQifan/cf-connect">
+    <img src="https://goreportcard.com/badge/github.com/ItsQifan/cf-connect" alt="Go Report Card"/>
   </a>
 </p>
 
@@ -35,7 +35,7 @@
 
 <p align="center">
   <a href="https://trendshift.io/repositories/23266" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/23266" alt="chenhg5/cc-connect | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
+    <img src="https://trendshift.io/api/badge/repositories/23266" alt="chenhg5/cf-connect | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
   </a>
 </p>
 
@@ -47,13 +47,13 @@
 <details open>
 <summary>Sponsors</summary>
 
-[![Kimi](https://gcdn.moonshot.cn/growth-cdn/sponsor/kimi-en.png)](https://www.kimi.com/code/?aff=cc-connect)
+[![Kimi](https://gcdn.moonshot.cn/growth-cdn/sponsor/kimi-en.png)](https://www.kimi.com/code/?aff=cf-connect)
 
-Thanks to [Kimi](https://www.kimi.com/code/?aff=cc-connect) for sponsoring this project! [Kimi K3](https://www.kimi.com/blog/kimi-k3) is Moonshot AI's most capable model and the world's first open 3T-class model. With 2.8 trillion parameters, native vision, and a 1-million-token context window, K3 delivers frontier performance across long-horizon coding, knowledge work, and reasoning.
+Thanks to [Kimi](https://www.kimi.com/code/?aff=cf-connect) for sponsoring this project! [Kimi K3](https://www.kimi.com/blog/kimi-k3) is Moonshot AI's most capable model and the world's first open 3T-class model. With 2.8 trillion parameters, native vision, and a 1-million-token context window, K3 delivers frontier performance across long-horizon coding, knowledge work, and reasoning.
 
-With cc-connect, you can bring Kimi CLI from your local machine into Feishu/Lark, DingTalk, Telegram, Slack, Discord, WeCom, and other instant messaging tools. Wherever you are, you can continue working on local projects through chat and ask Kimi to inspect or modify code, troubleshoot issues, run commands, and handle automation tasks.
+With cf-connect, you can bring Kimi CLI from your local machine into Feishu/Lark, DingTalk, Telegram, Slack, Discord, WeCom, and other instant messaging tools. Wherever you are, you can continue working on local projects through chat and ask Kimi to inspect or modify code, troubleshoot issues, run commands, and handle automation tasks.
 
-**cc-connect already supports Kimi CLI. Try the **[Kimi Code subscription](https://www.kimi.com/code/?aff=cc-connect)**, or use the API through the Kimi Open Platform ([中文站](https://platform.kimi.com?track_id=track-78c5d46574a54286a4ff42f7331272ba&aff=cc-connect) | [Global](https://platform.kimi.ai?track_id=track-dd37b0bea7a64b99b3fe2217b398e20b&aff=cc-connect)).
+**cf-connect already supports Kimi CLI. Try the **[Kimi Code subscription](https://www.kimi.com/code/?aff=cf-connect)**, or use the API through the Kimi Open Platform ([中文站](https://platform.kimi.com?track_id=track-78c5d46574a54286a4ff42f7331272ba&aff=cf-connect) | [Global](https://platform.kimi.ai?track_id=track-dd37b0bea7a64b99b3fe2217b398e20b&aff=cf-connect)).
 
 ---
 
@@ -65,22 +65,22 @@ With cc-connect, you can bring Kimi CLI from your local machine into Feishu/Lark
 
 <tr>
 <td width="150"><a href="https://s.qiniu.com/aUbueu"><img src="assets/sponsors/qiniu.png" alt="七牛云 Qiniu Cloud" width="120"></a></td>
-<td>Thanks to <a href="https://s.qiniu.com/aUbueu">Qiniu Cloud AI</a> for sponsoring this project! Qiniu Cloud (HK:02567) is an enterprise-grade LLM MaaS platform offering one-stop access to 150+ leading global models with full protocol compatibility across all major providers. It covers text, image, audio, video, and file processing across all modalities, serving over 1.69 million enterprise and developer users worldwide. Exclusive offer for cc-connect users: enterprise customers get 12 million free tokens, and refer friends to earn up to billions of tokens in bonus.</td>
+<td>Thanks to <a href="https://s.qiniu.com/aUbueu">Qiniu Cloud AI</a> for sponsoring this project! Qiniu Cloud (HK:02567) is an enterprise-grade LLM MaaS platform offering one-stop access to 150+ leading global models with full protocol compatibility across all major providers. It covers text, image, audio, video, and file processing across all modalities, serving over 1.69 million enterprise and developer users worldwide. Exclusive offer for cf-connect users: enterprise customers get 12 million free tokens, and refer friends to earn up to billions of tokens in bonus.</td>
 </tr>
 
 <tr>
 <td width="150"><a href="https://api.fenno.ai/register?redirect=/purchase?tab=subscription%26group=16&aff=C7KG6WBS7CQJ"><img src="assets/sponsors/fenno.png" alt="Fenno.ai" width="120"></a></td>
-<td>Thanks to Fenno.ai for sponsoring this project! Fenno.ai is a stable, efficient API relay service currently providing Codex relay with full OpenAI and Anthropic protocol compatibility. It flexibly integrates with mainstream coding tools like Codex, Claude Code, and OpenCode, reliably supporting enterprise-level demands of hundreds of billions of tokens per day. Fenno.ai supports domestic and overseas entity-to-entity settlement and invoicing. Exclusive offer for cc-connect users: subscribe via <a href="https://api.fenno.ai/register?redirect=/purchase?tab=subscription%26group=16&aff=C7KG6WBS7CQJ">this link</a> for an unbeatable Coding Plan at ¥9.9 / $150 credit, and earn up to 20% bonus for each friend you refer.</td>
+<td>Thanks to Fenno.ai for sponsoring this project! Fenno.ai is a stable, efficient API relay service currently providing Codex relay with full OpenAI and Anthropic protocol compatibility. It flexibly integrates with mainstream coding tools like Codex, Claude Code, and OpenCode, reliably supporting enterprise-level demands of hundreds of billions of tokens per day. Fenno.ai supports domestic and overseas entity-to-entity settlement and invoicing. Exclusive offer for cf-connect users: subscribe via <a href="https://api.fenno.ai/register?redirect=/purchase?tab=subscription%26group=16&aff=C7KG6WBS7CQJ">this link</a> for an unbeatable Coding Plan at ¥9.9 / $150 credit, and earn up to 20% bonus for each friend you refer.</td>
 </tr>
 
 <tr>
 <td width="150"><a href="https://aigocode.com/invite/CYY3C85C"><img src="assets/sponsors/aigocode.png" alt="AIGoCode" width="120"></a></td>
-<td>Thanks to AIGoCode for sponsoring this project! AIGoCode is an all-in-one platform that integrates Claude Code, Codex, and the latest Gemini models, providing you with stable, efficient, and highly cost-effective AI coding services. The platform offers flexible subscription plans, zero risk of account suspension, direct access with no VPN required, and lightning-fast responses. AIGoCode has prepared a special benefit for cc-connect users: if you register via <a href="https://aigocode.com/invite/CYY3C85C">this link</a>, you'll receive an extra 10% bonus credit on your first top-up!</td>
+<td>Thanks to AIGoCode for sponsoring this project! AIGoCode is an all-in-one platform that integrates Claude Code, Codex, and the latest Gemini models, providing you with stable, efficient, and highly cost-effective AI coding services. The platform offers flexible subscription plans, zero risk of account suspension, direct access with no VPN required, and lightning-fast responses. AIGoCode has prepared a special benefit for cf-connect users: if you register via <a href="https://aigocode.com/invite/CYY3C85C">this link</a>, you'll receive an extra 10% bonus credit on your first top-up!</td>
 </tr>
 
 <tr>
-<td width="150"><a href="https://go.apimart.ai/gh-cc-connect"><img src="assets/sponsors/apimart.png" alt="APIMart" width="120"></a></td>
-<td>Thanks to APIMart for sponsoring this project! APIMart is a low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee — <a href="https://go.apimart.ai/gh-cc-connect">sign up here</a> to get started.</td>
+<td width="150"><a href="https://go.apimart.ai/gh-cf-connect"><img src="assets/sponsors/apimart.png" alt="APIMart" width="120"></a></td>
+<td>Thanks to APIMart for sponsoring this project! APIMart is a low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee — <a href="https://go.apimart.ai/gh-cf-connect">sign up here</a> to get started.</td>
 </tr>
 
 <tr>
@@ -106,12 +106,12 @@ With cc-connect, you can bring Kimi CLI from your local machine into Feishu/Lark
 
 <tr>
 <td width="150"><a href="https://runapi.co/register?aff=4BXa"><img src="assets/sponsors/runapi.jpg" alt="RunAPI" width="120"></a></td>
-<td>Thanks to RunAPI for sponsoring this project! RunAPI is an efficient and stable API platform—an alternative to OpenRouter. A single API Key gives you access to 150+ leading models, including OpenAI, Claude, Gemini, DeepSeek, Grok, and more, at prices as low as 10% of the original (up to 90% off), with exceptional stability. It's seamlessly compatible with tools like Claude Code, OpenClaw, and others. RunAPI offers an exclusive perk for cc-connect users: register and contact an administrator to claim ¥7 in free credit.</td>
+<td>Thanks to RunAPI for sponsoring this project! RunAPI is an efficient and stable API platform—an alternative to OpenRouter. A single API Key gives you access to 150+ leading models, including OpenAI, Claude, Gemini, DeepSeek, Grok, and more, at prices as low as 10% of the original (up to 90% off), with exceptional stability. It's seamlessly compatible with tools like Claude Code, OpenClaw, and others. RunAPI offers an exclusive perk for cf-connect users: register and contact an administrator to claim ¥7 in free credit.</td>
 </tr>
 
 <tr>
 <td width="150"><a href="https://camel.kr777.top/register?aff=V2z8"><img src="assets/sponsors/camel_logo.png" alt="CaMeL" width="120"></a></td>
-<td>Thanks to CaMeL for sponsoring this project! In-depth cooperation with major research institutes and supercomputing centers, self-developed high-stability high-efficiency cache scheduling solution. Exclusive for cc-connect users: New registration authentication immediately receive $10 credit upon registration. Register via <a href="https://camel.kr777.top/register?aff=V2z8">this link</a>.</td>
+<td>Thanks to CaMeL for sponsoring this project! In-depth cooperation with major research institutes and supercomputing centers, self-developed high-stability high-efficiency cache scheduling solution. Exclusive for cf-connect users: New registration authentication immediately receive $10 credit upon registration. Register via <a href="https://camel.kr777.top/register?aff=V2z8">this link</a>.</td>
 </tr>
 
 <tr>
@@ -120,8 +120,8 @@ With cc-connect, you can bring Kimi CLI from your local machine into Feishu/Lark
 </tr>
 
 <tr>
-<td width="150"><a href="https://ergouapi.com/r/gh-cc-connect"><img src="assets/sponsors/ergou.png" alt="二狗 API" width="120"></a></td>
-<td>Thanks to Ergou API (二狗 API) for sponsoring this project! Ergou API is an LLM API relay offering industry-low 0.1x-0.2x rates across the board, with 100% native endpoints for Claude, GPT, Gemini and other top-tier LLMs. Backed by premium IPLC routes plus dual residential ISP redundancy, Ergou API delivers stable, low-latency access nationwide. Developers and studios are welcome to <a href="https://ergouapi.com/r/gh-cc-connect">sign up</a>.</td>
+<td width="150"><a href="https://ergouapi.com/r/gh-cf-connect"><img src="assets/sponsors/ergou.png" alt="二狗 API" width="120"></a></td>
+<td>Thanks to Ergou API (二狗 API) for sponsoring this project! Ergou API is an LLM API relay offering industry-low 0.1x-0.2x rates across the board, with 100% native endpoints for Claude, GPT, Gemini and other top-tier LLMs. Backed by premium IPLC routes plus dual residential ISP redundancy, Ergou API delivers stable, low-latency access nationwide. Developers and studios are welcome to <a href="https://ergouapi.com/r/gh-cf-connect">sign up</a>.</td>
 </tr>
 
 <tr>
@@ -151,19 +151,19 @@ With cc-connect, you can bring Kimi CLI from your local machine into Feishu/Lark
 
 
 <tr>
-<td width="150"><a href="https://passport.compshare.cn/register?referral_code=H65IOClRGu5CM7nn5ykfad&ytag=GPU_YY_YX_git_cc-connect"><img src="assets/sponsors/youyunzhisuan.png" alt="优云智算" width="120"></a></td>
-<td>Thanks to 优云智算 for sponsoring this project! 优云智算 (UCloud AI Cloud Platform) provides stable and comprehensive domestic and international model APIs with just one key. Featuring high-value Coding Plan packages (monthly or per-use), plus stable official relay for overseas models. Supports Claude Code, Codex, and API calls. Enterprise features include high concurrency, 7x24 technical support, and self-service invoicing. Register via <a href="https://passport.compshare.cn/register?referral_code=H65IOClRGu5CM7nn5ykfad&ytag=GPU_YY_YX_git_cc-connect">this link</a> to receive ¥5 free platform credit!</td>
+<td width="150"><a href="https://passport.compshare.cn"><img src="assets/sponsors/youyunzhisuan.png" alt="优云智算" width="120"></a></td>
+<td>Thanks to 优云智算 for sponsoring this project! 优云智算 (UCloud AI Cloud Platform) provides stable and comprehensive domestic and international model APIs with just one key. Featuring high-value Coding Plan packages (monthly or per-use), plus stable official relay for overseas models. Supports Claude Code, Codex, and API calls. Enterprise features include high concurrency, 7x24 technical support, and self-service invoicing. Register via <a href="https://passport.compshare.cn">this link</a> to receive ¥5 free platform credit!</td>
 </tr>
 
 <tr>
 <td width="150"><a href="https://dragoncode.codes/register?ref=23ZELCPX"><img src="assets/sponsors/dragoncode.png" alt="DragonCode" width="120"></a></td>
-<td>Thanks to DragonCode for supporting this project. DragonCode has prepared a special benefit for cc-connect users: register via <a href="https://dragoncode.codes/register?ref=23ZELCPX">this link</a> to get started.</td>
+<td>Thanks to DragonCode for supporting this project. DragonCode has prepared a special benefit for cf-connect users: register via <a href="https://dragoncode.codes/register?ref=23ZELCPX">this link</a> to get started.</td>
 </tr>
 
 
 <tr>
 <td width="150"><a href="https://code0.ai/register?aff=5cGO"><img src="assets/sponsors/code0.svg" alt="Code0" width="120"></a></td>
-<td>Thanks to Code0 for sponsoring this project! Code0 is an AI model aggregation API relay service for Chinese developers, compatible with OpenAI / Anthropic / Gemini protocols. One key for all mainstream models, stable support for Claude Code, Codex, Gemini CLI, cc-connect and more. Fixed exchange rate: ¥1.5 CNY = $1 USD API credit, transparent pricing, domestic direct connection, ready to use. Register via <a href="https://code0.ai/register?aff=5cGO">this link</a>.</td>
+<td>Thanks to Code0 for sponsoring this project! Code0 is an AI model aggregation API relay service for Chinese developers, compatible with OpenAI / Anthropic / Gemini protocols. One key for all mainstream models, stable support for Claude Code, Codex, Gemini CLI, cf-connect and more. Fixed exchange rate: ¥1.5 CNY = $1 USD API credit, transparent pricing, domestic direct connection, ready to use. Register via <a href="https://code0.ai/register?aff=5cGO">this link</a>.</td>
 </tr>
 
 <tr>
@@ -183,13 +183,13 @@ With cc-connect, you can bring Kimi CLI from your local machine into Feishu/Lark
 </p>
 
 <p align="center">
-  cc-connect bridges AI agents running on your machine to the messaging platforms you already use.<br/>
+  cf-connect bridges AI agents running on your machine to the messaging platforms you already use.<br/>
   Code review, research, automation, data analysis — anything an AI agent can do,<br/>
   now accessible from your phone, tablet, or any device with a chat app.
 </p>
 
 <p align="center">
-  <img src="docs/images/connector.png" alt="CC-Connect Architecture" width="90%"/>
+  <img src="docs/images/connector.png" alt="CF-Connect Architecture" width="90%"/>
 </p>
 
 
@@ -210,13 +210,13 @@ No breaking changes. See `changelogs/v1.5.1-beta.1.md` for the full changelog.
 
 ## 🧩 Platform feature snapshot
 
-High-level view of what each **built-in platform** can do in cc-connect.
+High-level view of what each **built-in platform** can do in cf-connect.
 
 **Legend**
 
 | Symbol | Meaning |
 |--------|---------|
-| ✅ | Works in **stable** cc-connect with typical configuration |
+| ✅ | Works in **stable** cf-connect with typical configuration |
 | ⚠️ | Partial, needs extra config (e.g. speech / ASR), or limited by the vendor app or API |
 | ❌ | Not supported or not applicable in practice |
 
@@ -237,7 +237,7 @@ High-level view of what each **built-in platform** can do in cc-connect.
 > Per-platform setup: [Platform setup guides](#-platform-setup-guides) below.
 
 
-## ✨ Why cc-connect?
+## ✨ Why cf-connect?
 
 ### 🤖 Universal Agent Support
 **10+ AI Agents** — Claude Code, Codex, Cursor Agent, Kimi CLI, Qoder CLI, Gemini CLI, OpenCode, iFlow CLI, Pi, Devin, Copilot — plus any agent that supports the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/get-started/agents). Use whichever fits your workflow, or all of them at once.
@@ -260,7 +260,7 @@ High-level view of what each **built-in platform** can do in cc-connect.
 **Scheduled Tasks** — Set up cron jobs in natural language. *"Every day at 6am, summarize GitHub trending"* just works.
 
 ### 🎤 Multimodal Support
-**Voice & Images** — Send voice messages or screenshots; cc-connect handles STT/TTS and multimodal forwarding.
+**Voice & Images** — Send voice messages or screenshots; cf-connect handles STT/TTS and multimodal forwarding.
 
 ### 📦 Multi-Project Architecture
 **Multi-Project** — One process, multiple projects, each with its own agent + platform combo.
@@ -270,9 +270,9 @@ High-level view of what each **built-in platform** can do in cc-connect.
 
 
 <p align="center">
-  <img src="docs/images/screenshot/cc-connect-lark.JPG" alt="飞书" width="32%" />
-  <img src="docs/images/screenshot/cc-connect-telegram.JPG" alt="Telegram" width="32%" />
-  <img src="docs/images/screenshot/cc-connect-wechat.JPG" alt="微信" width="32%" />
+  <img src="docs/images/screenshot/cf-connect-lark.JPG" alt="飞书" width="32%" />
+  <img src="docs/images/screenshot/cf-connect-telegram.JPG" alt="Telegram" width="32%" />
+  <img src="docs/images/screenshot/cf-connect-wechat.JPG" alt="微信" width="32%" />
 </p>
 <p align="center">
   <em>Left：Lark &nbsp;|&nbsp; Telegram &nbsp;|&nbsp; Right：Wechat</em>
@@ -281,7 +281,7 @@ High-level view of what each **built-in platform** can do in cc-connect.
 
 ## 📋 Prerequisites
 
-> **Install in this exact order** — cc-connect is a bridge for local AI coding agents, so the agent CLI must be installed and authenticated *before* cc-connect starts. Skipping ahead will cause `cc-connect` to exit with `claudecode: claude CLI not found in PATH` (or similar for your chosen agent), and the Web UI on `:9820` will never come up.
+> **Install in this exact order** — cf-connect is a bridge for local AI coding agents, so the agent CLI must be installed and authenticated *before* cf-connect starts. Skipping ahead will cause `cf-connect` to exit with `claudecode: claude CLI not found in PATH` (or similar for your chosen agent), and the Web UI on `:9820` will never come up.
 
 ### 1️⃣ Install your AI Agent CLI
 
@@ -326,27 +326,27 @@ claude login           # opens a browser to authenticate
 codex login            # /gemini / opencode auth — see the agent's docs
 ```
 
-If you skip this step, `cc-connect` will still start, but the agent will reject every prompt with an auth error.
+If you skip this step, `cf-connect` will still start, but the agent will reject every prompt with an auth error.
 
-### 3️⃣ Install cc-connect
+### 3️⃣ Install cf-connect
 
 ```bash
 # npm (any platform)
-npm install -g cc-connect
+npm install -g cf-connect
 
 # Homebrew (macOS / Linux)
-brew install cc-connect
+brew install cf-connect
 
-# Or download a binary from https://github.com/chenhg5/cc-connect/releases
+# Or download a binary from https://github.com/ItsQifan/cf-connect/releases
 ```
 
-### 4️⃣ Start cc-connect and open the Web UI
+### 4️⃣ Start cf-connect and open the Web UI
 
 ```bash
-cc-connect             # starts the service; first run auto-creates ~/.cc-connect/config.toml
+cf-connect             # starts the service; first run auto-creates ~/.cf-connect/config.toml
 ```
 
-On first launch, cc-connect prints something like:
+On first launch, cf-connect prints something like:
 
 ```
 Web admin:  http://localhost:9820
@@ -354,13 +354,13 @@ Web admin:  http://localhost:9820
 
 Open that URL in your browser. If `9820` is already in use, pass `--web-port 9821` or set `web_port` in `config.toml`.
 
-> **Note:** `cc-connect web` *only* opens the browser and the config UI — it does **not** start the service. You still need `cc-connect` running in another terminal.
+> **Note:** `cf-connect web` *only* opens the browser and the config UI — it does **not** start the service. You still need `cf-connect` running in another terminal.
 
 ### 5️⃣ Configure platform bot tokens in the Web UI
 
-In the Web UI, create a project, then add at least one platform (Feishu / Telegram / Discord / Slack / DingTalk / WeChat Work / QQ / LINE / Weixin) and paste the bot token from that platform's developer console. Save and cc-connect will hot-reload.
+In the Web UI, create a project, then add at least one platform (Feishu / Telegram / Discord / Slack / DingTalk / WeChat Work / QQ / LINE / Weixin) and paste the bot token from that platform's developer console. Save and cf-connect will hot-reload.
 
-That's it — send a message to your bot and cc-connect will relay it to your local agent.
+That's it — send a message to your bot and cf-connect will relay it to your local agent.
 
 ---
 
@@ -371,7 +371,7 @@ That's it — send a message to your bot and cc-connect will relay it to your lo
 > **The easiest way** — Send this to Claude Code or any AI coding agent, and it will handle the entire installation and configuration for you:
 
 ```bash
-Follow https://raw.githubusercontent.com/chenhg5/cc-connect/refs/heads/main/INSTALL.md to install and configure cc-connect.
+Follow https://raw.githubusercontent.com/chenhg5/cf-connect/refs/heads/main/INSTALL.md to install and configure cf-connect.
 ```
 
 
@@ -380,55 +380,55 @@ Follow https://raw.githubusercontent.com/chenhg5/cc-connect/refs/heads/main/INST
 **Via npm:**
 
 ```bash
-npm install -g cc-connect
+npm install -g cf-connect
 ```
 
 **Via Homebrew (macOS / Linux):**
 
 ```bash
-brew install cc-connect
+brew install cf-connect
 ```
 
-**Download binary from [GitHub Releases](https://github.com/chenhg5/cc-connect/releases):**
+**Download binary from [GitHub Releases](https://github.com/ItsQifan/cf-connect/releases):**
 
 ```bash
 # Linux amd64 - Stable
-curl -L -o cc-connect https://github.com/chenhg5/cc-connect/releases/latest/download/cc-connect-linux-amd64
-chmod +x cc-connect
-sudo mv cc-connect /usr/local/bin/
+curl -L -o cf-connect https://github.com/ItsQifan/cf-connect/releases/latest/download/cf-connect-linux-amd64
+chmod +x cf-connect
+sudo mv cf-connect /usr/local/bin/
 
 ```
 
 **Build from source (requires Go 1.22+):**
 
 ```bash
-git clone https://github.com/chenhg5/cc-connect.git
-cd cc-connect
+git clone https://github.com/ItsQifan/cf-connect.git
+cd cf-connect
 make build
 ```
 
 
 ### ⚙️ Configure
 
-> **💡 Tip: Use the Web UI to configure** — After installing, run `cc-connect web` to configure the web admin and open the dashboard in your browser. You can visually create projects, add platforms, manage providers, and chat with your agent — no need to manually edit TOML files. **Note:** `cc-connect web` only configures and opens the browser — you still need to run `cc-connect` separately to start the service.
+> **💡 Tip: Use the Web UI to configure** — After installing, run `cf-connect web` to configure the web admin and open the dashboard in your browser. You can visually create projects, add platforms, manage providers, and chat with your agent — no need to manually edit TOML files. **Note:** `cf-connect web` only configures and opens the browser — you still need to run `cf-connect` separately to start the service.
 
 If you prefer manual configuration:
 
 ```bash
-mkdir -p ~/.cc-connect
-cp config.example.toml ~/.cc-connect/config.toml
-vim ~/.cc-connect/config.toml
+mkdir -p ~/.cf-connect
+cp config.example.toml ~/.cf-connect/config.toml
+vim ~/.cf-connect/config.toml
 ```
 
 Set `admin_from = "alice,bob"` in a project to allow those user IDs to run privileged commands such as `/dir` and `/shell`.
 `admin_from` must be placed under `[[projects]]` (not under `[projects.platforms.options]`). You can use `/whoami` or `/status` to get your current `User ID`.
-When a user runs `/dir reset`, cc-connect restores the configured `work_dir` and clears the persisted override stored under `data_dir/projects/<project>.state.json`.
+When a user runs `/dir reset`, cf-connect restores the configured `work_dir` and clears the persisted override stored under `data_dir/projects/<project>.state.json`.
 
 
 ### ▶️ Run
 
 ```bash
-./cc-connect
+./cf-connect
 ```
 
 
@@ -436,14 +436,14 @@ When a user runs `/dir reset`, cc-connect restores the configured `work_dir` and
 
 ```bash
 # npm
-npm install -g cc-connect
+npm install -g cf-connect
 
 # Homebrew
-brew upgrade cc-connect
+brew upgrade cf-connect
 
 # Binary self-update
-cc-connect update           # Stable
-cc-connect update --pre     # Include pre-releases
+cf-connect update           # Stable
+cf-connect update --pre     # Include pre-releases
 ```
 
 
@@ -523,7 +523,7 @@ The default is **30 minutes** when unset. Set `reset_on_idle_mins = 0` to opt ou
 
 On Linux/macOS, a project can spawn its agent under a different Unix
 user for OS-level file-system isolation from the supervisor user that
-runs cc-connect. Currently supported by Claude Code.
+runs cf-connect. Currently supported by Claude Code.
 
 ```toml
 [[projects]]
@@ -542,14 +542,14 @@ for details. See
 [`docs/usage.md`](./docs/usage.md#running-agents-as-a-different-unix-user-run_as_user)
 for the full setup.
 
-Before starting cc-connect, audit the setup with:
+Before starting cf-connect, audit the setup with:
 
 ```bash
-cc-connect doctor user-isolation
+cf-connect doctor user-isolation
 ```
 
 This runs three go/no-go preflight gates and an isolation probe that
-reports what the target user can and cannot read. cc-connect refuses to
+reports what the target user can and cannot read. cf-connect refuses to
 start if any gate fails or if the probe detects a cross-user leak.
 
 ---
@@ -616,7 +616,7 @@ or:
 /cron setup
 ```
 
-This refreshes the cc-connect instructions in the project memory file so the agent knows how to send attachments back.
+This refreshes the cf-connect instructions in the project memory file so the agent knows how to send attachments back.
 
 You can control this feature globally in `config.toml`:
 
@@ -624,15 +624,15 @@ You can control this feature globally in `config.toml`:
 attachment_send = "on"  # default: "on"; set to "off" to block image/file send-back
 ```
 
-This switch is independent from the agent's `/mode`. It only controls `cc-connect send --image/--file`. Voice send-back uses the TTS config instead.
+This switch is independent from the agent's `/mode`. It only controls `cf-connect send --image/--file`. Voice send-back uses the TTS config instead.
 
 Examples:
 
 ```bash
-cc-connect send --image /absolute/path/to/chart.png
-cc-connect send --file /absolute/path/to/report.pdf
-cc-connect send --file /absolute/path/to/report.pdf --image /absolute/path/to/chart.png
-cc-connect send --tts "Hello from cc-connect"
+cf-connect send --image /absolute/path/to/chart.png
+cf-connect send --file /absolute/path/to/report.pdf
+cf-connect send --file /absolute/path/to/report.pdf --image /absolute/path/to/chart.png
+cf-connect send --tts "Hello from cf-connect"
 ```
 
 Notes:
@@ -662,7 +662,7 @@ Notes:
 
 ## ☕ Support the Project
 
-If cc-connect has been helpful to you, consider buying us a coffee! Your support helps us:
+If cf-connect has been helpful to you, consider buying us a coffee! Your support helps us:
 
 - 🛠️ Maintain and improve the project
 - 📚 Write better documentation and tutorials
@@ -702,18 +702,18 @@ We accept the following commercial collaborations:
 
 ## 🙏 Contributors
 
-<a href="https://github.com/chenhg5/cc-connect/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=chenhg5/cc-connect&v=20250313" />
+<a href="https://github.com/ItsQifan/cf-connect/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=chenhg5/cf-connect&v=20250313" />
 </a>
 
 
 ## ⭐ Star History
 
-<a href="https://www.star-history.com/#chenhg5/cc-connect&Date">
+<a href="https://www.star-history.com/#chenhg5/cf-connect&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=chenhg5/cc-connect&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=chenhg5/cc-connect&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=chenhg5/cc-connect&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=chenhg5/cf-connect&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=chenhg5/cf-connect&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=chenhg5/cf-connect&type=Date" />
  </picture>
 </a>
 
@@ -724,5 +724,5 @@ MIT License
 
 
 <p align="center">
-  <sub>Built with ❤️ by the cc-connect community</sub>
+  <sub>Built with ❤️ by the cf-connect community</sub>
 </p>

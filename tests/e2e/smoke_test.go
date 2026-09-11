@@ -1,6 +1,6 @@
 //go:build smoke
 
-// Package e2e contains smoke and regression tests for cc-connect.
+// Package e2e contains smoke and regression tests for cf-connect.
 // These tests verify core functionality using real components where possible,
 // and mocks where necessary (e.g., platform network calls).
 package e2e
@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chenhg5/cc-connect/config"
-	"github.com/chenhg5/cc-connect/core"
-	"github.com/chenhg5/cc-connect/tests/mocks"
-	"github.com/chenhg5/cc-connect/tests/mocks/fake"
+	"github.com/ItsQifan/cf-connect/config"
+	"github.com/ItsQifan/cf-connect/core"
+	"github.com/ItsQifan/cf-connect/tests/mocks"
+	"github.com/ItsQifan/cf-connect/tests/mocks/fake"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

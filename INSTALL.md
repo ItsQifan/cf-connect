@@ -1,14 +1,14 @@
-# cc-connect Installation & Configuration Guide
+# cf-connect Installation & Configuration Guide
 
-> **This document is designed to be read by AI coding agents (Claude Code, Cursor, Gemini CLI, etc.) to help users install and configure cc-connect.** You can feed this file directly to your AI agent.
+> **This document is designed to be read by AI coding agents (Claude Code, Cursor, Gemini CLI, etc.) to help users install and configure cf-connect.** You can feed this file directly to your AI agent.
 
-## What is cc-connect?
+## What is cf-connect?
 
-cc-connect bridges local AI coding assistants to messaging platforms (Feishu, DingTalk, Telegram, Slack, Discord, LINE, WeChat Work, QQ, **personal WeChat** via the **Weixin (ilink)** platform).
+cf-connect bridges local AI coding assistants to messaging platforms (Feishu, DingTalk, Telegram, Slack, Discord, LINE, WeChat Work, QQ, **personal WeChat** via the **Weixin (ilink)** platform).
 
-GitHub: https://github.com/chenhg5/cc-connect
+GitHub: https://github.com/ItsQifan/cf-connect
 
-**IMPORTANT: If you are an AI agent helping a user install cc-connect, use interactive tools (like AskUserQuestion) to guide them through configuration choices:**
+**IMPORTANT: If you are an AI agent helping a user install cf-connect, use interactive tools (like AskUserQuestion) to guide them through configuration choices:**
 - Agent selection (Claude Code, Cursor, Gemini, etc.)
 - Platform selection (Feishu, Telegram, Discord, etc.)
 - API keys and authentication tokens
@@ -16,44 +16,44 @@ GitHub: https://github.com/chenhg5/cc-connect
 
 Don't guess values—always ask the user to choose via interactive prompts.
 
-## Step 1: Install cc-connect
+## Step 1: Install cf-connect
 
 ### Option A: npm (recommended for most users)
 
 ```bash
-npm install -g cc-connect
+npm install -g cf-connect
 ```
 
-After installation, the `cc-connect` binary will be available globally.
+After installation, the `cf-connect` binary will be available globally.
 
 
 ### Option B: Homebrew (macOS / Linux)
 
 ```bash
-brew install cc-connect
+brew install cf-connect
 ```
 
 ### Option C: Download binary from GitHub Releases
 
-Go to https://github.com/chenhg5/cc-connect/releases and download the binary for your platform.
+Go to https://github.com/ItsQifan/cf-connect/releases and download the binary for your platform.
 
 Typical artifact names (check the release page for exact filenames):
 
-- Linux: `cc-connect-<version>-linux-amd64` (or `.tar.gz`)
-- macOS: `cc-connect-<version>-darwin-amd64` / `arm64`
-- Windows: `cc-connect-<version>-windows-amd64.exe` (or `.zip`)
+- Linux: `cf-connect-<version>-linux-amd64` (or `.tar.gz`)
+- macOS: `cf-connect-<version>-darwin-amd64` / `arm64`
+- Windows: `cf-connect-<version>-windows-amd64.exe` (or `.zip`)
 
 ```bash
 # Example for Linux amd64 (replace URL with the asset link from the release you chose):
-curl -L -o cc-connect https://github.com/chenhg5/cc-connect/releases/latest/download/cc-connect-linux-amd64
-chmod +x cc-connect
-sudo mv cc-connect /usr/local/bin/
+curl -L -o cf-connect https://github.com/ItsQifan/cf-connect/releases/latest/download/cf-connect-linux-amd64
+chmod +x cf-connect
+sudo mv cf-connect /usr/local/bin/
 ```
 
 On macOS, you may need to remove the quarantine attribute:
 
 ```bash
-xattr -d com.apple.quarantine cc-connect
+xattr -d com.apple.quarantine cf-connect
 ```
 
 ### Option D: Build from source
@@ -61,15 +61,15 @@ xattr -d com.apple.quarantine cc-connect
 Requires Go 1.22+.
 
 ```bash
-git clone https://github.com/chenhg5/cc-connect.git
-cd cc-connect
+git clone https://github.com/ItsQifan/cf-connect.git
+cd cf-connect
 make build
-# Binary will be at ./cc-connect
+# Binary will be at ./cf-connect
 ```
 
 ## Step 2: Install your AI Agent
 
-cc-connect supports multiple local coding agents. Install at least one:
+cf-connect supports multiple local coding agents. Install at least one:
 
 ```bash
 # Claude Code
@@ -105,22 +105,22 @@ qodercli --version
 
 ## Step 3: Create config.toml
 
-> **💡 Recommended: Use the Web UI** — After installing, run `cc-connect web` to configure the web admin and open the dashboard in your browser. You can visually create projects, add platforms, manage API providers, and even chat with your agent directly from the browser — no need to edit TOML files by hand. **Note:** `cc-connect web` only configures and opens the browser — you still need to run `cc-connect` separately to start the service.
+> **💡 Recommended: Use the Web UI** — After installing, run `cf-connect web` to configure the web admin and open the dashboard in your browser. You can visually create projects, add platforms, manage API providers, and even chat with your agent directly from the browser — no need to edit TOML files by hand. **Note:** `cf-connect web` only configures and opens the browser — you still need to run `cf-connect` separately to start the service.
 
-If you prefer manual configuration, cc-connect looks for config in this order:
+If you prefer manual configuration, cf-connect looks for config in this order:
 1. `-config <path>` flag (explicit)
 2. `./config.toml` (current directory)
-3. `~/.cc-connect/config.toml` (global, **recommended**)
+3. `~/.cf-connect/config.toml` (global, **recommended**)
 
-If no config file exists, running `cc-connect` will auto-create a starter template at `~/.cc-connect/config.toml`.
+If no config file exists, running `cf-connect` will auto-create a starter template at `~/.cf-connect/config.toml`.
 
 **Manual config location:**
 
 ```bash
-mkdir -p ~/.cc-connect
+mkdir -p ~/.cf-connect
 # If you cloned the repo, copy the example:
-cp config.example.toml ~/.cc-connect/config.toml
-# Or just run cc-connect once — it will create a starter config automatically
+cp config.example.toml ~/.cf-connect/config.toml
+# Or just run cf-connect once — it will create a starter config automatically
 ```
 
 You can also use a local config in the current directory:
@@ -182,13 +182,13 @@ Connection: WebSocket long connection (SDK auto-negotiates)
 
 ```bash
 # Recommended: unified entry
-cc-connect feishu setup --project my-project
-cc-connect feishu setup --project my-project --app cli_xxx:sec_xxx
+cf-connect feishu setup --project my-project
+cf-connect feishu setup --project my-project --app cli_xxx:sec_xxx
 
 # Force modes (usually unnecessary)
-cc-connect feishu new --project my-project
+cf-connect feishu new --project my-project
 
-cc-connect feishu bind --project my-project --app cli_xxx:sec_xxx
+cf-connect feishu bind --project my-project --app cli_xxx:sec_xxx
 ```
 
 Notes:
@@ -196,7 +196,7 @@ Notes:
   - no credentials => same as `new`
   - with `--app`/`--app-id` => same as `bind`
 - `setup/new` prints a terminal QR code + URL for mobile scanning.
-- If `--project` does not exist, cc-connect creates it automatically.
+- If `--project` does not exist, cf-connect creates it automatically.
 - This flow fills `app_id` / `app_secret`; in QR onboarding flow, Feishu usually pre-configures permissions and event subscriptions.
 - Still verify app publish status and availability scope in Feishu Open Platform.
 
@@ -359,7 +359,7 @@ Connection: HTTP Webhook (you need ngrok, cloudflared, or a server with public I
    - URL: `https://<your-public-domain>:<port>/wecom/callback`
    - Token: any random string
    - EncodingAESKey: click "Random Generate" (43 chars)
-   - **Start cc-connect FIRST, then save** (to pass URL verification)
+   - **Start cf-connect FIRST, then save** (to pass URL verification)
 5. **Trusted IP** → add your server's outbound public IP
 6. (Optional) **WeChat Plugin** → scan QR to link personal WeChat
 
@@ -391,14 +391,14 @@ Personal WeChat uses Tencent’s **ilink bot HTTP API** (same family as OpenClaw
 1. Run:
 
    ```bash
-   cc-connect weixin setup --project my-project
+   cf-connect weixin setup --project my-project
    ```
 
 2. Scan the QR code (or open the printed URL) in WeChat and confirm.
 
-3. Restart cc-connect, then send a message from WeChat once so `context_token` is cached.
+3. Restart cf-connect, then send a message from WeChat once so `context_token` is cached.
 
-If you already have a Bearer token, use `cc-connect weixin bind --project my-project --token '<token>'`.
+If you already have a Bearer token, use `cf-connect weixin bind --project my-project --token '<token>'`.
 
 **Detailed guide (Chinese):** [docs/weixin.md](docs/weixin.md)
 
@@ -461,36 +461,36 @@ access_token = "syt_xxx_xxx"
 
 ---
 
-## Step 5: Run cc-connect
+## Step 5: Run cf-connect
 
 **Open the Web UI (recommended):**
 
 ```bash
-cc-connect web    # configure web admin & open browser (does NOT start cc-connect)
-cc-connect        # start the service
+cf-connect web    # configure web admin & open browser (does NOT start cf-connect)
+cf-connect        # start the service
 ```
 
-> **Note:** `cc-connect web` only configures the web admin and opens the dashboard in your browser — it does **not** start the cc-connect service itself. You still need to run `cc-connect` (or `cc-connect --config <path>`) separately to actually start the bridge. Think of it as two steps: configure first, then run.
+> **Note:** `cf-connect web` only configures the web admin and opens the dashboard in your browser — it does **not** start the cf-connect service itself. You still need to run `cf-connect` (or `cf-connect --config <path>`) separately to actually start the bridge. Think of it as two steps: configure first, then run.
 
-**Important: If you are running inside a Claude Code session** (e.g., Claude Code helped you install and configure cc-connect), you must unset the `CLAUDECODE` environment variable before starting, otherwise Claude Code will refuse to launch as a subprocess:
+**Important: If you are running inside a Claude Code session** (e.g., Claude Code helped you install and configure cf-connect), you must unset the `CLAUDECODE` environment variable before starting, otherwise Claude Code will refuse to launch as a subprocess:
 
 ```bash
-unset CLAUDECODE && cc-connect
+unset CLAUDECODE && cf-connect
 ```
 
-Alternatively, open a **separate terminal** and run cc-connect there — this avoids the issue entirely.
+Alternatively, open a **separate terminal** and run cf-connect there — this avoids the issue entirely.
 
 **Normal startup:**
 
 ```bash
 # Run with config.toml in current directory
-cc-connect
+cf-connect
 
 # Or specify config path
-cc-connect -config /path/to/config.toml
+cf-connect -config /path/to/config.toml
 
 # Check version
-cc-connect --version
+cf-connect --version
 ```
 
 You should see logs like:
@@ -498,7 +498,7 @@ You should see logs like:
 ```
 level=INFO msg="platform started" project=my-project platform=feishu
 level=INFO msg="engine started" project=my-project agent=claudecode platforms=1
-level=INFO msg="cc-connect is running" projects=1
+level=INFO msg="cf-connect is running" projects=1
 ```
 
 ## Step 6: Chat Commands
@@ -527,7 +527,7 @@ During a session, Claude may ask for tool permissions. Reply:
 
 ## Step 7: Enable Natural Language Scheduling (Non-Claude-Code Agents)
 
-cc-connect supports scheduled tasks (cron jobs). You can always create them via slash commands (`/cron add ...`) or CLI (`cc-connect cron add ...`), but to let the agent **understand natural language** like "every day at 6am, summarize trending repos", the agent needs to know about cc-connect's cron CLI.
+cf-connect supports scheduled tasks (cron jobs). You can always create them via slash commands (`/cron add ...`) or CLI (`cf-connect cron add ...`), but to let the agent **understand natural language** like "every day at 6am, summarize trending repos", the agent needs to know about cf-connect's cron CLI.
 
 **Claude Code** handles this automatically via `--append-system-prompt` — no extra setup needed.
 
@@ -545,59 +545,59 @@ cc-connect supports scheduled tasks (cron jobs). You can always create them via 
 **Content to add** (copy-paste into the file):
 
 ```markdown
-# cc-connect Integration
+# cf-connect Integration
 
-This project is managed via cc-connect, a bridge to messaging platforms.
+This project is managed via cf-connect, a bridge to messaging platforms.
 
 ## Scheduled tasks (cron)
 When the user asks you to do something on a schedule (e.g. "every day at 6am",
 "every Monday morning"), use the Bash/shell tool to run:
 
-  cc-connect cron add --cron "<min> <hour> <day> <month> <weekday>" --prompt "<task description>" --desc "<short label>"
+  cf-connect cron add --cron "<min> <hour> <day> <month> <weekday>" --prompt "<task description>" --desc "<short label>"
 
 Environment variables CC_PROJECT and CC_SESSION_KEY are already set — do NOT
 specify --project or --session-key.
 
 Examples:
-  cc-connect cron add --cron "0 6 * * *" --prompt "Collect GitHub trending repos and send a summary" --desc "Daily GitHub Trending"
-  cc-connect cron add --cron "0 9 * * 1" --prompt "Generate a weekly project status report" --desc "Weekly Report"
+  cf-connect cron add --cron "0 6 * * *" --prompt "Collect GitHub trending repos and send a summary" --desc "Daily GitHub Trending"
+  cf-connect cron add --cron "0 9 * * 1" --prompt "Generate a weekly project status report" --desc "Weekly Report"
 
 To list, run, edit, or delete cron jobs:
-  cc-connect cron list
-  cc-connect cron exec <job-id>
-  cc-connect cron edit <job-id> <field> <value>
-  cc-connect cron del <job-id>
+  cf-connect cron list
+  cf-connect cron exec <job-id>
+  cf-connect cron edit <job-id> <field> <value>
+  cf-connect cron del <job-id>
 
 Use `cron exec <job-id>` to run an existing scheduled task immediately; this is different from the `--exec <command>` flag used when creating a shell-command cron job.
 Use `cron edit` to modify a single field instead of delete-and-recreate.
 Common editable fields: cron_expr, prompt, exec, description, enabled (true/false), mute (true/false), timeout_mins (int).
-Run `cc-connect cron edit --help` for the full field list.
+Run `cf-connect cron edit --help` for the full field list.
 
 Examples:
-  cc-connect cron exec abc123
-  cc-connect cron edit abc123 cron_expr "0 9 * * *"
-  cc-connect cron edit abc123 enabled false
-  cc-connect cron edit abc123 prompt "Updated daily summary task"
+  cf-connect cron exec abc123
+  cf-connect cron edit abc123 cron_expr "0 9 * * *"
+  cf-connect cron edit abc123 enabled false
+  cf-connect cron edit abc123 prompt "Updated daily summary task"
 
 ## Send message to current chat
 To proactively send a message back to the user's chat session (use --stdin heredoc for long/multi-line messages):
 
-  cc-connect send --stdin <<'CCEOF'
+  cf-connect send --stdin <<'CCEOF'
   your message here (any special characters are safe)
   CCEOF
 
 For short single-line messages:
 
-  cc-connect send -m "short message"
+  cf-connect send -m "short message"
 ```
 
-After adding this file, the agent will be able to translate natural language scheduling requests into `cc-connect cron add` commands automatically.
+After adding this file, the agent will be able to translate natural language scheduling requests into `cf-connect cron add` commands automatically.
 
-> **Tip:** You may want to add `AGENTS.md` / `.cursorrules` / `GEMINI.md` to your `.gitignore` if you don't want cc-connect instructions committed to version control.
+> **Tip:** You may want to add `AGENTS.md` / `.cursorrules` / `GEMINI.md` to your `.gitignore` if you don't want cf-connect instructions committed to version control.
 
 ## Multi-Project Setup
 
-A single cc-connect process can manage multiple projects. Each project has its own agent, work directory, and platforms:
+A single cf-connect process can manage multiple projects. Each project has its own agent, work directory, and platforms:
 
 ```toml
 [[projects]]
@@ -712,58 +712,58 @@ app_token = "xapp-xxx"
 ### Check current version
 
 ```bash
-cc-connect --version
+cf-connect --version
 ```
 
 ### npm users
 
 ```bash
-npm update -g cc-connect
+npm update -g cf-connect
 ```
 
 ### Binary users
 
-Check the latest release at https://github.com/chenhg5/cc-connect/releases and compare with your local version. To upgrade:
+Check the latest release at https://github.com/ItsQifan/cf-connect/releases and compare with your local version. To upgrade:
 
 ```bash
 # Linux/macOS — replace with your platform suffix
-curl -L -o /usr/local/bin/cc-connect https://github.com/chenhg5/cc-connect/releases/latest/download/cc-connect-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
-chmod +x /usr/local/bin/cc-connect
+curl -L -o /usr/local/bin/cf-connect https://github.com/ItsQifan/cf-connect/releases/latest/download/cf-connect-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+chmod +x /usr/local/bin/cf-connect
 ```
 
 ### Source users
 
 ```bash
-cd cc-connect
+cd cf-connect
 git pull
 make build
 ```
 
-After upgrading, restart the running cc-connect process.
+After upgrading, restart the running cf-connect process.
 
 ## Step 8: Run as Background Service (Optional)
 
-You can run cc-connect as a daemon managed by the OS init system (Linux systemd user service, macOS launchd LaunchAgent, Windows Task Scheduler task).
+You can run cf-connect as a daemon managed by the OS init system (Linux systemd user service, macOS launchd LaunchAgent, Windows Task Scheduler task).
 
 ### Install the daemon
 
 ```bash
-cc-connect daemon install --config ~/.cc-connect/config.toml
+cf-connect daemon install --config ~/.cf-connect/config.toml
 ```
 
 You can also point the daemon at the directory that contains `config.toml`:
 
 ```bash
-cc-connect daemon install --work-dir ~/.cc-connect
+cf-connect daemon install --work-dir ~/.cf-connect
 ```
 
 Optional flags: `--config PATH`, `--log-file PATH`, `--log-max-size N` (MB), `--work-dir DIR`, `--force` (overwrite existing unit). `--config` points to a config file, while `--work-dir` points to the directory containing `config.toml`.
 
 ### Linux systemd: Keep service running after SSH disconnect
 
-When installed as a user-level systemd service (non-root), cc-connect runs under `user@UID.service`. By default, systemd stops this service when your last login session ends (e.g., SSH disconnect). This is controlled by the "linger" setting.
+When installed as a user-level systemd service (non-root), cf-connect runs under `user@UID.service`. By default, systemd stops this service when your last login session ends (e.g., SSH disconnect). This is controlled by the "linger" setting.
 
-To keep cc-connect running persistently, enable linger for your user:
+To keep cf-connect running persistently, enable linger for your user:
 
 ```bash
 sudo loginctl enable-linger $USER
@@ -774,7 +774,7 @@ After enabling linger, `user@UID.service` remains active even when you log out. 
 Alternatively, you can install as a system-level service (requires root):
 
 ```bash
-sudo cc-connect daemon install --config ~/.cc-connect/config.toml
+sudo cf-connect daemon install --config ~/.cf-connect/config.toml
 ```
 
 System-level services are independent of login sessions.
@@ -782,32 +782,32 @@ System-level services are independent of login sessions.
 ### Control the service
 
 ```bash
-cc-connect daemon start
-cc-connect daemon stop
-cc-connect daemon restart
-cc-connect daemon status
+cf-connect daemon start
+cf-connect daemon stop
+cf-connect daemon restart
+cf-connect daemon status
 ```
 
 ### View logs
 
 ```bash
-cc-connect daemon logs           # tail current log
-cc-connect daemon logs -f         # follow (like tail -f)
-cc-connect daemon logs -n 100     # last 100 lines
-cc-connect daemon logs --log-file /path/to/log  # custom log file
+cf-connect daemon logs           # tail current log
+cf-connect daemon logs -f         # follow (like tail -f)
+cf-connect daemon logs -n 100     # last 100 lines
+cf-connect daemon logs --log-file /path/to/log  # custom log file
 ```
 
 Logs auto-rotate at the configured max size and keep one backup.
 
-On Windows, `daemon install` creates a native Task Scheduler task named `cc-connect`.
+On Windows, `daemon install` creates a native Task Scheduler task named `cf-connect`.
 The task runs at user logon and is also started immediately after installation. The
-installer writes a small PowerShell launcher under `~/.cc-connect` so the scheduled
+installer writes a small PowerShell launcher under `~/.cf-connect` so the scheduled
 task uses the selected config directory, log file, PATH, and proxy environment.
 
 ### Uninstall
 
 ```bash
-cc-connect daemon uninstall
+cf-connect daemon uninstall
 ```
 
 ## Additional Features
@@ -824,12 +824,12 @@ The following additional features are available:
 - **Voice Reply (TTS)**: Text-to-speech via Qwen / OpenAI / MiniMax / MiMo / local providers. Requires `ffmpeg` and `[tts]` config.
 - **Image Messages**: Send images to Claude Code for multimodal analysis
 - **API Provider Management**: Runtime switching between API providers via `/provider` command or CLI
-- **CLI Send**: `cc-connect send` to inject messages into active sessions from external processes
+- **CLI Send**: `cf-connect send` to inject messages into active sessions from external processes
 
 ## Troubleshooting
 
 - **"session already in use"** — A previous Claude Code process may still be running. Use `/new` to start a fresh session.
-- **No response from bot** — Check `cc-connect` logs. Set `level = "debug"` in `[log]` for verbose output.
+- **No response from bot** — Check `cf-connect` logs. Set `level = "debug"` in `[log]` for verbose output.
 - **WeChat Work can't send messages** — Ensure your outbound IP is in the Trusted IP whitelist. If using a proxy, check the proxy is reachable.
 - **LINE/WeChat Work can't receive messages** — Ensure your webhook URL is publicly accessible (ngrok/cloudflared running).
-- **macOS binary won't open** — Run `xattr -d com.apple.quarantine cc-connect` to remove quarantine flag.
+- **macOS binary won't open** — Run `xattr -d com.apple.quarantine cf-connect` to remove quarantine flag.

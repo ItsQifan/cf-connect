@@ -16,7 +16,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/chenhg5/cc-connect/core"
+	"github.com/ItsQifan/cf-connect/core"
 
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/chatbot"
 	dingtalkClient "github.com/open-dingtalk/dingtalk-stream-sdk-go/client"
@@ -1638,7 +1638,7 @@ func (p *Platform) ReconstructReplyCtx(sessionKey string) (any, error) {
 }
 
 // sendProactiveMessage sends a message using the DingTalk group/direct message API
-// instead of the temporary sessionWebhook. This enables cc-connect send, cron,
+// instead of the temporary sessionWebhook. This enables cf-connect send, cron,
 // webhook, and other proactive messaging features.
 func (p *Platform) sendProactiveMessage(ctx context.Context, rc replyContext, content string) error {
 	token, err := p.getAccessToken()

@@ -1,6 +1,6 @@
-APP        := cc-connect
-MODULE     := github.com/chenhg5/cc-connect
-CMD        := ./cmd/cc-connect
+APP        := cf-connect
+MODULE     := github.com/ItsQifan/cf-connect
+CMD        := ./cmd/cf-connect
 DIST       := dist
 
 VERSION := v1.5.1-beta.1
@@ -23,20 +23,16 @@ PLATFORMS := \
 # ---------------------------------------------------------------------------
 # Selective compilation via build tags.
 #
-# By default all agents and platforms are included. To build with only
-# specific ones, set AGENTS and/or PLATFORMS_INCLUDE:
+# This fork ships exactly one agent (opencode, which also drives codefree-o)
+# and one platform (dingtalk), so both defaults are already the only choice.
+# The machinery below is kept functional for anyone adding an adapter back:
 #
-#   make build AGENTS=claudecode PLATFORMS_INCLUDE=feishu,telegram
-#
-# You can also exclude specific ones:
-#
-#   make build EXCLUDE=discord,dingtalk,qq,qqbot,line
+#   make build AGENTS=opencode PLATFORMS_INCLUDE=dingtalk
+#   make build EXCLUDE=web
 # ---------------------------------------------------------------------------
 
-ALL_AGENTS    := acp antigravity claudecode codex copilot cursor devin gemini iflow kimi opencode pi qoder tmux
-ALL_PLATFORMS := feishu telegram discord slack dingtalk wecom weixin qq qqbot line weibo max matrix webex wps-agentspace tuitui
-ALL_AGENTS    := acp antigravity claudecode codex copilot cursor devin gemini iflow kimi opencode pi qoder reasonix tmux
-ALL_PLATFORMS := feishu telegram discord slack dingtalk wecom weixin qq qqbot line weibo max matrix webex cloud_web tuitui googlechat
+ALL_AGENTS    := opencode
+ALL_PLATFORMS := dingtalk
 ALL_EXTRAS    := web
 
 COMMA := ,
@@ -70,8 +66,8 @@ _TAGS_FLAG  := $(if $(_BUILD_TAGS),-tags '$(_BUILD_TAGS)',)
 .PHONY: build run clean test test-fast test-full test-smoke test-e2e test-release test-release-local test-performance pre-test lint release release-all web
 
 web:
-	@if [ ! -d web/node_modules ]; then cd web && npm install; fi
-	cd web && npm run build
+	@if [ ! -d web/node_modules ]; then cd web && pnpm install --frozen-lockfile || pnpm install; fi
+	cd web && pnpm build
 
 build: web
 	go build $(_TAGS_FLAG) -ldflags "$(LDFLAGS)" -o $(APP) $(CMD)
@@ -137,7 +133,8 @@ test-release-local:
 	go test ./tests/release_local/...
 	go test ./config
 	go test ./core -run 'TestEngineSendToSessionWithAttachments|TestProcessInteractiveEvents_SuppressesDuplicateSideChannelText|TestCmdList_AllSessionsVisibleAfterRepeatedNew|TestCmdList_SessionVisibleDuringAgentProcessing|TestEngine_Alias|TestEngine_BannedWords|TestEngine_DisabledCommands'
-	go test ./platform/feishu -run 'TestUserIDFromEventFallsBackToUserID|TestResolveUserNameSkipsInvalidLookupID|TestNew_CanDisableInteractiveCards'
+	go test ./agent/opencode -run 'Codefree'
+	go test ./platform/dingtalk
 
 # Legacy: runs unit tests only
 test:
@@ -145,6 +142,21 @@ test:
 
 lint:
 	golangci-lint run ./...
+
+# ---------------------------------------------------------------------------
+# Distribution.
+#
+# `make release-all` produces one archive per PLATFORMS entry, each containing
+# the binary plus everything a colleague needs to run it (config template,
+# QUICKSTART, optional PATH helper, README). The archives are the delivery
+# artifact: there is no package manager and no self-update path.
+#
+# Packaging runs through a small POSIX shell loop rather than `zip`/`tar` calls
+# scattered across case branches, because the same script has to work on the
+# developer's machine and in CI.
+# ---------------------------------------------------------------------------
+
+DIST_FILES := config.example.toml QUICKSTART.md install.ps1 README.md
 
 release-all: web clean
 	@mkdir -p $(DIST)
@@ -156,17 +168,28 @@ release-all: web clean
 		echo "Building $(OUT)" && \
 		GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 \
 			go build $(_TAGS_FLAG) -ldflags "$(LDFLAGS)" -o $(OUT) $(CMD) && \
-	) true
+	)
 	@echo "Packaging archives..."
 	@cd $(DIST) && for f in $(APP)-*; do \
 		case "$$f" in \
 			*.tar.gz|*.zip) continue ;; \
-			*.exe) zip "$${f%.exe}.zip" "$$f" ;; \
-			*)     tar czf "$$f.tar.gz" "$$f" ;; \
+			*.exe) base="$${f%.exe}" ;; \
+			*)     base="$$f" ;; \
 		esac; \
+		stage="stage-$$base"; \
+		mkdir -p "$$stage"; \
+		cp "$$f" "$$stage/"; \
+		for extra in $(DIST_FILES); do \
+			[ -f "../$$extra" ] && cp "../$$extra" "$$stage/"; \
+		done; \
+		case "$$f" in \
+			*.exe) (cd "$$stage" && zip -q -r "../$$base.zip" .) ;; \
+			*)     tar czf "$$base.tar.gz" -C "$$stage" . ;; \
+		esac; \
+		rm -rf "$$stage"; \
 	done
-	@cd $(DIST) && sha256sum * > checksums.txt
-	@echo "Done. Binaries and archives in $(DIST)/"
+	@cd $(DIST) && sha256sum *.zip *.tar.gz > checksums.txt 2>/dev/null || true
+	@echo "Done. Archives in $(DIST)/"
 
 release:
 	@if [ -z "$(TARGET)" ]; then \

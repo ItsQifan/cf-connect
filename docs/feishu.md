@@ -1,11 +1,11 @@
 # 飞书 (Feishu/Lark) 接入指南
 
-本文档介绍如何将 **cc-connect** 接入飞书，让你可以通过飞书机器人远程调用 Claude Code。
+本文档介绍如何将 **cf-connect** 接入飞书，让你可以通过飞书机器人远程调用 Claude Code。
 
 ## 前置要求
 
 - 飞书账号（个人或企业均可）
-- 一台可运行 cc-connect 的设备（无需公网 IP）
+- 一台可运行 cf-connect 的设备（无需公网 IP）
 - Claude Code 已安装并配置完成
 
 > 💡 **优势**：使用长连接模式，无需公网 IP、无需域名、无需反向代理（ngrok/frp）
@@ -14,16 +14,16 @@
 
 ## 快速配置（推荐）
 
-如果你已经装好 `cc-connect`，可以直接用内置命令完成“新建机器人/关联已有机器人”，并自动写回 `config.toml`：
+如果你已经装好 `cf-connect`，可以直接用内置命令完成“新建机器人/关联已有机器人”，并自动写回 `config.toml`：
 
 ```bash
 # 推荐：统一入口
-cc-connect feishu setup --project my-project
-cc-connect feishu setup --project my-project --app cli_xxx:sec_xxx
+cf-connect feishu setup --project my-project
+cf-connect feishu setup --project my-project --app cli_xxx:sec_xxx
 
 # 强制模式（一般不需要）
-cc-connect feishu new --project my-project
-cc-connect feishu bind --project my-project --app cli_xxx:sec_xxx
+cf-connect feishu new --project my-project
+cf-connect feishu bind --project my-project --app cli_xxx:sec_xxx
 ```
 
 三者区别：
@@ -63,7 +63,7 @@ cc-connect feishu bind --project my-project --app cli_xxx:sec_xxx
 
 | 字段 | 填写建议 |
 |------|---------|
-| 应用名称 | `cc-connect` 或你喜欢的名称 |
+| 应用名称 | `cf-connect` 或你喜欢的名称 |
 | 应用描述 | `Claude Code 远程助手` |
 | 应用图标 | 上传一个喜欢的图标 |
 
@@ -84,11 +84,11 @@ App ID:     cli_axxxxxxxxxxxx
 App Secret: QhkMpxxxxxxxxxxxxxxxxxxxx
 ```
 
-> ⚠️ **重要**：请妥善保存这两个凭证，后续配置 cc-connect 时需要用到。App Secret 只会显示一次，如果忘记了需要重置。
+> ⚠️ **重要**：请妥善保存这两个凭证，后续配置 cf-connect 时需要用到。App Secret 只会显示一次，如果忘记了需要重置。
 
-### 2.3 配置到 cc-connect
+### 2.3 配置到 cf-connect
 
-将凭证配置到 cc-connect 的 `config.toml` 中：
+将凭证配置到 cf-connect 的 `config.toml` 中：
 
 ```toml
 [[projects]]
@@ -120,7 +120,7 @@ app_secret = "QhkMpxxxxxxxxxxxxxxxxxxxx"
 
 > 如果应用没有交互卡片权限，或后台未配置卡片回调，可将 `enable_feishu_card = false`，让所有命令统一走纯文本回复，避免卡片发送失败后用户看不到内容。
 > 如果开启 `thread_isolation = true`，群聊里每个根消息 / reply thread 会对应一个独立 agent session；私聊行为保持原样。
-> `group_chat_history_share = true` 时，cc-connect 只在内存中保留当前进程观察到的、允许访问的群聊 text/post 消息，并在下一次明确 @ 机器人且真正进入 agent turn 时注入；未 @ 的消息不会触发回复。`/status` 等由 cc-connect 处理的命令不会消费这段待处理上下文，`/new` 会清空对应主频道或话题的上下文。
+> `group_chat_history_share = true` 时，cf-connect 只在内存中保留当前进程观察到的、允许访问的群聊 text/post 消息，并在下一次明确 @ 机器人且真正进入 agent turn 时注入；未 @ 的消息不会触发回复。`/status` 等由 cf-connect 处理的命令不会消费这段待处理上下文，`/new` 会清空对应主频道或话题的上下文。
 > 在 multi-workspace 模式下，`thread_isolation = true` 也会让每个话题独立绑定 workspace；在话题内执行 `/workspace bind <name>` 不会影响同群的其他话题。已有的群级 binding 会保留为默认值，由尚未显式绑定的话题继承，因此回退到旧版本时仍可使用。
 > `progress_style = "compact"` 会把思考/工具进度合并到一条可更新消息里，减少刷屏；`legacy` 保持原有逐条发送；`card` 会使用结构化卡片（标题 + 进度块）持续更新同一条消息，观感比纯文本更清晰。
 > `domain` 只影响运行时 API / WebSocket 请求地址；CLI `setup/new/bind` 的引导域名仍然使用内置默认值。
@@ -129,7 +129,7 @@ app_secret = "QhkMpxxxxxxxxxxxxxxxxxxxx"
 > **English:** Optional `ack_emoji = "Get"` adds a persistent receipt asynchronously once the engine accepts a message for processing or queueing, before waiting for agent startup/execution. It confirms acceptance, not execution or success, and survives completion/failure/cancellation. Omitted, empty or `"none"` keeps existing behavior. Processing (`reaction_emoji`) and completion (`done_emoji`) remain independent; if receipt and processing use the same emoji, the receipt owns it and typing cleanup does not remove it. Rejected/duplicate/stale messages, handled commands and synthetic scheduled work are not acknowledged. The receipt begins at engine acceptance; subsequent messages waiting on the existing session-startup lock still wait for admission. Receipt API calls have a five-second timeout and never block processing. Parsing/media preparation and image batching precede acceptance; a merged image batch acknowledges its newest canonical message.
 
 > `done_emoji` 设置后，agent 每次完成回复时会在用户消息上添加指定表情（如 `"Done"` → ✅）。先清理临时处理表情（与接收确认相同的表情会保留），再添加 done 表情。在 quiet 模式下特别有用，因为飞书卡片原地更新不触发推送，done 表情可以通知用户 agent 已完成。设为 `"none"` 或不配置则禁用。
-> `image_batch_window_ms` 控制连续多张图片合并成一条 agent 消息的等待窗口（默认 500ms）。飞书手机端一次连发多张图时，每张图是独立事件；cc-connect 会在窗口内将它们合并成一条多图消息再分发给 agent。如果你的网络/设备发送间隔超过 500ms 且仍被拆成多轮回复（每张图独立处理），可调高到 800–1200ms；如果以单图为主、希望响应更快，可适当调低。设为 `0` 时回退到默认 500ms。
+> `image_batch_window_ms` 控制连续多张图片合并成一条 agent 消息的等待窗口（默认 500ms）。飞书手机端一次连发多张图时，每张图是独立事件；cf-connect 会在窗口内将它们合并成一条多图消息再分发给 agent。如果你的网络/设备发送间隔超过 500ms 且仍被拆成多轮回复（每张图独立处理），可调高到 800–1200ms；如果以单图为主、希望响应更快，可适当调低。设为 `0` 时回退到默认 500ms。
 
 ---
 
@@ -144,7 +144,7 @@ app_secret = "QhkMpxxxxxxxxxxxxxxxxxxxx"
 
 | 配置项 | 建议值 |
 |-------|--------|
-| 机器人名称 | `cc-connect` |
+| 机器人名称 | `cf-connect` |
 | 机器人描述 | `Claude Code 远程助手` |
 | 机器人头像 | 与应用图标一致 |
 
@@ -173,7 +173,7 @@ app_secret = "QhkMpxxxxxxxxxxxxxxxxxxxx"
 
 配置完权限后，点击「申请发布」使权限生效。
 
-如果启用了 `group_chat_history_share`，必须为应用申请并发布 `im:message.group_msg`，否则飞书只会向机器人推送被 @ 的群消息，未提及消息无法进入共享上下文。该功能不会回溯 cc-connect 启动前的历史，也不会持久化待处理消息。
+如果启用了 `group_chat_history_share`，必须为应用申请并发布 `im:message.group_msg`，否则飞书只会向机器人推送被 @ 的群消息，未提及消息无法进入共享上下文。该功能不会回溯 cf-connect 启动前的历史，也不会持久化待处理消息。
 
 ---
 
@@ -231,23 +231,23 @@ app_secret = "QhkMpxxxxxxxxxxxxxxxxxxxx"
 
 ---
 
-## 第六步：启动 cc-connect
+## 第六步：启动 cf-connect
 
 ### 6.1 启动服务
 
 ```bash
-cc-connect
+cf-connect
 # 或指定配置文件
-cc-connect -config /path/to/config.toml
+cf-connect -config /path/to/config.toml
 ```
 
 ### 6.2 验证连接
 
-启动后，cc-connect 会自动与飞书建立 WebSocket 长连接。你会在日志中看到：
+启动后，cf-connect 会自动与飞书建立 WebSocket 长连接。你会在日志中看到：
 
 ```
 level=INFO msg="platform started" project=my-project platform=feishu
-level=INFO msg="cc-connect is running" projects=1
+level=INFO msg="cf-connect is running" projects=1
 [Info] connected to wss://msg-frontier.feishu.cn/ws/v2?...
 ```
 
@@ -290,9 +290,9 @@ level=INFO msg="cc-connect is running" projects=1
 ```
 用户: 帮我分析一下当前项目的结构
 
-cc-connect: 🤔 思考中...
-cc-connect: 🔧 执行: Bash(ls -la)
-cc-connect: ✅ 这是一个 Node.js 项目，包含以下目录...
+cf-connect: 🤔 思考中...
+cf-connect: 🔧 执行: Bash(ls -la)
+cf-connect: ✅ 这是一个 Node.js 项目，包含以下目录...
 ```
 
 ---
@@ -313,7 +313,7 @@ cc-connect: ✅ 这是一个 Node.js 项目，包含以下目录...
 ┌─────────────────────────────────────────────────────────────┐
 │                      你的本地环境                            │
 │                                                              │
-│   cc-connect ◄──► Claude Code CLI ◄──► 你的项目代码         │
+│   cf-connect ◄──► Claude Code CLI ◄──► 你的项目代码         │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -344,7 +344,7 @@ resolve_mentions = true
 **Cron 定时任务：**
 
 ```bash
-cc-connect cron add \
+cf-connect cron add \
   --cron "0 9 * * *" \
   --prompt "执行每日巡检报告，完成后通知 @张三 和 @李四 查看" \
   --desc "每日巡检"
@@ -383,7 +383,7 @@ AI 输出中包含 `@某人` 时，发送到飞书前会自动匹配并替换。
 
 `resolve_mentions` 通过匹配**群成员显示名**来解析 `@name`，但当目标是**另一个机器人 / Agent**（而非真人成员）时，机器人不一定出现在群成员列表中，名字匹配会失败。
 
-`mention_map` 选项用于这种场景：手动把「显示名」映射到机器人的 `open_id`，让 cc-connect 直接生成原生飞书 `<at user_id="...">` 标签，触发真正的 @ 通知。
+`mention_map` 选项用于这种场景：手动把「显示名」映射到机器人的 `open_id`，让 cf-connect 直接生成原生飞书 `<at user_id="...">` 标签，触发真正的 @ 通知。
 
 ### 配置
 
@@ -400,7 +400,7 @@ mention_map = { BOT-B = "ou_bot_b_open_id", BOT-A = "ou_bot_a_open_id" }
 
 ### 使用示例
 
-Agent 输出 `@BOT-B 请复核巡检报告` 时，cc-connect 在发送到飞书前会把它替换为：
+Agent 输出 `@BOT-B 请复核巡检报告` 时，cf-connect 在发送到飞书前会把它替换为：
 
 ```
 <at user_id="ou_bot_b_open_id">BOT-B</at> 请复核巡检报告
@@ -412,7 +412,7 @@ BOT-B 机器人会收到飞书 @ 事件并被触发。
 
 - **多 Agent 协作**：BOT-A 巡检发现问题 → 在回复里 @BOT-B 触发修复 Agent。
 - **跨 Agent 通知**：长任务（Cron）由一个 Agent 完成后，@另一个 Agent 接力。
-- **@ 机器人触发 Hook**：飞书机器人收到 @ 事件可触发 cc-connect 的会话路由。
+- **@ 机器人触发 Hook**：飞书机器人收到 @ 事件可触发 cf-connect 的会话路由。
 
 ### 如何获取机器人 open_id
 
@@ -420,8 +420,8 @@ BOT-B 机器人会收到飞书 @ 事件并被触发。
 
 获取方式（按推荐顺序）：
 
-1. **读 cc-connect 启动日志（最简单，适用于自己控制的应用）**
-   cc-connect 启动时会自动调用 `/open-apis/bot/v3/info` 拉取自身 `open_id`，并打印：
+1. **读 cf-connect 启动日志（最简单，适用于自己控制的应用）**
+   cf-connect 启动时会自动调用 `/open-apis/bot/v3/info` 拉取自身 `open_id`，并打印：
    ```
    feishu: bot identified open_id=ou_xxxxxxxxxxxxxxxx
    ```
@@ -458,18 +458,18 @@ BOT-B 机器人会收到飞书 @ 事件并被触发。
 
 ### Q: 长连接断开怎么办？
 
-cc-connect 内置了自动重连机制，断开后会自动尝试重新连接。
+cf-connect 内置了自动重连机制，断开后会自动尝试重新连接。
 
 ### Q: 消息发送后没有响应？
 
 检查以下项目：
-1. cc-connect 服务是否正常运行
+1. cf-connect 服务是否正常运行
 2. 长连接是否建立成功（查看日志）
 3. 事件订阅是否配置了 `im.message.receive_v1`
 
 ### Q: 点击卡片按钮没有反应或报错？
 
-cc-connect 默认使用交互卡片显示权限确认、provider 选择等操作。如果点击按钮后无响应、显示加载超时或报错，请检查：
+cf-connect 默认使用交互卡片显示权限确认、provider 选择等操作。如果点击按钮后无响应、显示加载超时或报错，请检查：
 
 1. **事件订阅**：确认已在飞书开放平台订阅了 `card.action.trigger` 事件（详见第五步）
 2. **应用发布**：修改事件订阅后需要重新发布应用版本
@@ -490,7 +490,7 @@ enable_feishu_card = false
 
 ### Q: 扫码页显示 OpenClaw 文案，是不是配置错了？
 
-通常是飞书注册模板侧的展示文案，不影响返回 `app_id/app_secret` 和接入 cc-connect。
+通常是飞书注册模板侧的展示文案，不影响返回 `app_id/app_secret` 和接入 cf-connect。
 
 ### Q: 如何调试消息？
 

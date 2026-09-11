@@ -6,5 +6,5 @@
 package helper
 
 import (
-	_ "github.com/chenhg5/cc-connect/agent/opencode"
+	_ "github.com/ItsQifan/cf-connect/agent/opencode"
 )

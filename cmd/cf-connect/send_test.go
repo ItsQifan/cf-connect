@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chenhg5/cc-connect/config"
-	"github.com/chenhg5/cc-connect/core"
+	"github.com/ItsQifan/cf-connect/config"
+	"github.com/ItsQifan/cf-connect/core"
 )
 
 func TestParseSendArgs_AttachmentsWithoutMessage(t *testing.T) {
