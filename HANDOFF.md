@@ -1,341 +1,326 @@
-# 交接文档（CF-Connect 改造）
+# 交接文档（cf-connect）
 
-> 写给接手的新会话/新同事。所有数据均为**实测**，来源是本轮会话的工具输出。
-> 有不确定的地方会明确标注，不编造。
+> 写给接手的新会话。所有数据均为**实测**，来源是本轮会话的工具输出。
+> 不确定的地方会明确标注"未实测"。**本文档已取代上一版交接文档**（上一版写的是裁剪阶段，
+> 结论已过期）。
+>
+> **新会话先读**：本文 → `docs/DINGTALK-E2E.md`（钉钉联调验收报告，含 7 个缺陷的根因与证据）。
 
 - **仓库**：`E:\my_idea_workspace\cf-connect`
 - **分支**：`trim-dingtalk-codefree-o`（**未合并回 main，未推送**）
-- **HEAD**：`774a2f6`（本文件所在提交）
+- **本轮最后一个功能提交**：`72c2be8`
+  （本文档自身的提交不含代码改动，用 `git log -1 --oneline` 看当前 HEAD）
+- **工作树**：干净（`git status` 无输出）
+- **版本号**：`Makefile` 的 `VERSION := v1.0.0`
+- **本轮交付**：`dist/cf-connect-v1.0.0-windows-amd64.zip`（6,748,480 字节，
+  SHA256 `52efdd4b06a1a9298bea1280641c1072ed49ec0cf05ff01b5572f6a138d038bb`）
 - **上游基线 tag**：`baseline-upstream-3a6534d`（= 上游 cc-connect `3a6534d`）
-- **工作树**：联调修复后有未提交改动（`config.example.toml` / `QUICKSTART.md` /
-  `config/config.go` / `core/engine.go` / `core/interfaces.go` / `platform/dingtalk/dingtalk.go` /
-  `embed_test.go` / `config/config_test.go` / `platform/dingtalk/dingtalk_test.go` /
-  `docs/DINGTALK-E2E.md` / `HANDOFF.md`；`dist/` 被 gitignore，属预期）
-- **改造计划原文**：`E:\my_idea_workspace\workspace_obsidian\codefree-connect-plan.md`
-- **本轮核心交付**：`dist/cf-connect-v1.5.1-cf.1-windows-amd64.zip`（6.43 MB）
+- **git tag**：只有 `baseline-upstream-3a6534d`；**v1.0.0 还没打 tag**
 
 ---
 
-## 1. 这个项目现在是什么
+## 1. 这个项目是什么
 
-**钉钉 ↔ 本地 CodeFree-O 的单通道网关**：钉钉消息 → 子进程调用本地 agent → NDJSON 流式结果回推钉钉。
+**钉钉 ↔ 本地 CodeFree-O 的单通道网关**：钉钉消息 → 子进程调用本地 agent → 结果回推钉钉。
 
 ```
 钉钉 ──(Stream 长连接，无需公网 IP)──▶ cf-connect ──(子进程 + NDJSON)──▶ codefree-o / opencode
 ```
 
-| | 本轮之后 |
+| | 现状 |
 |---|---|
-| 平台 | **只有钉钉**（`platform/dingtalk`，20 → 1） |
-| 智能体 | **只有 opencode 适配器**，同时驱动 codefree-o（`agent/opencode`，17 → 1） |
-| CLI / 二进制 | `cf-connect`（`cmd/cf-connect`） |
+| 平台 | **只有钉钉**（`platform/dingtalk`） |
+| 智能体 | **只有 opencode 适配器**，同时驱动 codefree-o（`agent/opencode`） |
 | module | `github.com/ItsQifan/cf-connect`（remote 走 `githubproxy.cc` 代理） |
-| 配置目录 | `~/.cf-connect` |
-| 版本号 | `Makefile` 的 `VERSION := v1.5.1-cf.1` |
-| 依赖 | 直接依赖 9 个，`go.sum` 133 行（原 372 行） |
+| 配置目录 | `~/.cf-connect`（会话状态、cron、timer、workspace 绑定、api.sock） |
+| 依赖 | 直接依赖 9 个，`go.sum` 133 行 |
+
+### 当前阶段结论
+
+**功能已可用，且完成真机验收。** 联调结论（`docs/DINGTALK-E2E.md`）：
+Stream 收发、真实 AI 回复、多轮上下文、工具调用、**AI 卡片流式**、
+会话标题/消息数、白名单拦截、`~/.cf-connect/` 生成 —— 全部通过。
+
+**剩下的是发布流程与未覆盖场景**，不是阻塞性缺陷。见 §7。
 
 ---
 
-## 2. 环境事实（新会话先读这段）
+## 2. 环境事实（先读这段，能省很多时间）
 
 ### 工具链（已装好，无需重装）
 
 | 工具 | 位置 / 版本 | 备注 |
 |---|---|---|
-| Go | `%LOCALAPPDATA%\Programs\go-toolchain\go`，**go1.25.14 windows/amd64** | 已写入用户级 `GOROOT` / `GOPATH` / 用户 `PATH` |
+| Go | `%LOCALAPPDATA%\Programs\go-toolchain\go`，go1.25.14 windows/amd64 | 用户级 PATH 已写入，但**只有新终端**继承 |
 | Node | v22.22.0 | |
-| pnpm | 11.7.0，但**必须切 pnpm 10** | 见下 |
-| codefree-o | `C:\nvm4w\nodejs\codefree-o.ps1`，**1.7.0** | 已授权登录（会话中用户完成过 OAuth） |
-| opencode | `C:\nvm4w\nodejs\opencode.ps1` | 回归测试用它，也在 PATH |
+| pnpm | **10.34.5**（已 `corepack prepare pnpm@10 --activate`） | 锁文件是 `lockfileVersion: '9.0'`，pnpm 11 会失败 |
+| codefree-o | `C:\nvm4w\nodejs\codefree-o.cmd` → `node_modules\@srdcloud\codefree-o\bin\codefree-o.exe`，1.7.0 | 已登录（userId 311476） |
+| opencode | `C:\nvm4w\nodejs\opencode.ps1` | |
 
-**关于 Go 的 PATH**：用户级 PATH 已写入，但**只有新开的终端**才继承。
-当前/旧会话里请用仓库自带的包装脚本：
+当前会话里用仓库自带包装脚本（自动探测 GOROOT）：
 
 ```powershell
 cd E:\my_idea_workspace\cf-connect
-.\scripts\go-dev.cmd version      # 自动探测 GOROOT，默认 GOPROXY=https://goproxy.cn,direct
 .\scripts\go-dev.cmd build ./...
-.\scripts\go-dev.cmd test ./...
+.\scripts\go-dev.cmd test ./core/ -run TestCUJ
 ```
 
-覆盖代理：`set GOPROXY=direct` 后再调用即可。
+### 沙箱限制（本轮踩了 4 次，务必先设好再干活）
 
-**关于 pnpm**：仓库锁文件是 `lockfileVersion: '9.0'`（pnpm 10 生成），
-用 pnpm 11 安装会失败。已执行过：
+本轮的 DSH 文件策略是 `workspace-write`，**工作区外一律拒绝写入**。表现和绕法：
+
+| 操作 | 现象 | 处理 |
+|---|---|---|
+| `go build` / `go test` | `open C:\Users\...\go-build\...: Access is denied` | **把 GOCACHE 指到工作区内**（见下），无需提权 |
+| 发布脚本里的 `go build` | `go: writing stat cache: ...\go\pkg\mod\cache\...: Access is denied` + 脚本中断 | 需要**提权一次**（`danger-full-access`）；Go 必须写工作区外的模块 stat 缓存 |
+| `cd web; pnpm build` | `Error: spawn EPERM`（esbuild 用管道 stdio 启子进程） | 需要**提权一次** |
+| 运行 `cf-connect.exe` | `mkdir C:\Users\...\.cf-connect\crons: Access is denied` | 需要**提权一次**（默认数据目录在工作区外） |
+| 写注册表（如测 `install.ps1`） | `Access to the registry key ... is denied` | 本轮未能绕过，相关验证只能靠代码审查 |
+
+**推荐固定环境（放在每个 pwsh 调用里）**：
 
 ```powershell
-corepack prepare pnpm@10 --activate
+$env:GOCACHE="E:\my_idea_workspace\cf-connect\tmp\gocache"
+$env:GOTMPDIR="E:\my_idea_workspace\cf-connect\tmp\gotmp"
+$env:GOROOT = Join-Path $env:LOCALAPPDATA 'Programs\go-toolchain\go'
+$env:PATH = "$env:GOROOT\bin;$env:PATH"     # 发布脚本直接调 `go`，必须上 PATH
 ```
 
-### 出网受限（重要）
+> `tmp\gocache` 已存在（约 275 MB，gitignore 覆盖）。嫌大可删，Go 会重建。
 
-本机直连 `go.dev` / `goproxy.cn` 等在 PowerShell 里 TLS 失败。
-**Node 的 fetch 可以正常走代理**，这是本轮能装上 Go 的原因。
+### 出网
 
-- 可用：`node` + `fetch`（需 `HTTPS_PROXY=http://127.0.0.1:7897`）
-- 系统代理已开（`ProxyEnable=1` → `127.0.0.1:7897`）
-- 若需下载大文件，参考思路：写个 `.mjs` 用 Node fetch 下载
+- 系统代理 `127.0.0.1:7897`（`ProxyEnable=1`）。
+- **`api.dingtalk.com` 直连可用**，cf-connect 全程**未设** `HTTPS_PROXY` 就收发正常。
+- PowerShell 里直连 `go.dev` / `goproxy.cn` TLS 失败；**Node 的 fetch 可走代理**，
+  下载大文件参考：写个 `.mjs` 用 Node fetch。
 
 ---
 
-## 3. 已完成的工作（9 个提交）
+## 3. 本轮做了什么（3 个提交）
 
 ```
+72c2be8 docs: fix the shipped README's false claims and dead links
+551b142 docs: drop the stale doctor self-check step from INSTALL.md
+31c3bd4 fix: correct user-facing agent labels and repair trim leftovers
+774a2f6 docs: add a handoff document for the next session   ← 上一轮
 80b243d chore: add the repo's own verification scripts
-bbbaef6 docs: add the acceptance report and the pre-trim baseline test record
-3c193f1 test: add real-CLI acceptance tests for the codefree-o contract
-bf8531e build: drop unused dependencies, add the Windows release script (stages 10, 6.5)
-638e27d docs: rewrite for the zip distribution model (stage 8)
-14e7f87 refactor!: remove self-update; converge web UI to DingTalk + CodeFree-O
-8748cf2 refactor!: rename brand to cf-connect (stage 7)
-3e96fd7 refactor!: drop non-opencode agents; add codefree-o compatibility layer
-a4fd2a0 refactor!: trim to DingTalk-only gateway (stage 1 + core/config cleanup)
-
-3a6534d (baseline-upstream-3a6534d) 上游基线
 ```
 
-对应计划的阶段：1 → a4fd2a0，2+2.5 → 3e96fd7，7 → 8748cf2，5+6 → 14e7f87，
-8 → 638e27d，10+6.5 → bf8531e，验收测试 → 3c193f1，验收记录 → bbbaef6，脚本 → 80b243d。
+`31c3bd4` 是主体：联调 + 修 7 个缺陷 + 15 个回归测试。详见 `docs/DINGTALK-E2E.md` §7/§8。
 
-**回滚**：`git reset --hard baseline-upstream-3a6534d`（会丢掉全部改造），
-或按提交逐个 revert。
+### 修了什么（每条都有回归测试，且都验证过"修复前 FAIL、修复后 PASS"）
 
-### codefree-o 兼容层（三处补丁 + 一处计划外增强）
-
-| # | 补丁 | 文件 | 要点 |
-|---|---|---|---|
-| 1 | 权限 flag 可配置 | `session.go` / `opencode.go` | 原硬编码 `--dangerously-skip-permissions`（两个 CLI 都不支持）。新增 `permission_flag` 选项，默认 `--auto`；`none`/`off`/`-` 表示不追加；仅 `yolo` 模式生效 |
-| 2 | 数据目录按品牌识别 | `sessiondb.go`（新增） | 原固定读 `~/.local/share/opencode/opencode.db`。现按优先级：显式 `db_file`/`data_dir` → `$XDG_DATA_HOME`（仅 opencode）→ 品牌默认。codefree-o → `~/.codefree-o/.local/share/codefree.db` |
-| 3 | 全局记忆文件 + 别名 | `opencode.go` | `GlobalMemoryFile()` 支持 `global_memory_file` 选项，并按品牌探测 `~/.codefree-o/.config/{OPENCODE,AGENTS}.md`；注册 `codefree-o` 别名；实现 `AgentDoctorInfo` |
-| **计划外** | **进程内 sqlite** | `sessiondb.go` | 计划 §9.3 列为"可选"，**已改为必做**（理由见 §4） |
-
-### 其它
-
-- **自更新已删除**：`cmd/cf-connect/update.go`、`core/updater.go`、`core/updater_test.go`；
-  `/upgrade` 改为提示手动升级（新 i18n key `MsgUpgradeRemoved`，5 语言）
-- **全量改名**：`cc-connect` → `cf-connect`（大小写保留）；**`CC_*` 环境变量与
-  `cc_connect_*` 内部标识保持不变**（按计划）
-- **web 收敛**：`platformMeta.ts` 只留 dingtalk；agent 选择只留 opencode + codefree-o；
-  删 `PlatformSetupQR.tsx` + `api/setup.ts`（QR 平台已不存在）；
-  `provider-presets.json` 24 → 16 条（只留 opencode 段）
-- **文档重写**：`README.md` / `README.zh-CN.md` / `INSTALL.md` / `QUICKSTART.md`（新增）/
-  `RELEASE.md`（新增）/ `config.example.toml`（2135 → 237 行）/ 删 20 个已删平台的 guide
-
-### 新增的守卫测试
-
-| 测试 | 文件 | 作用 |
+| 编号 | 问题 | 严重度 |
 |---|---|---|
-| `TestBuildRunArgs_YoloPermissionFlagIsConfigurable` 等 | `agent/opencode/codefree_regression_test.go` | 补丁 1/2/3 的回归覆盖 |
-| `TestRealCodefreeDB_ReadsTitlesAndMessageCounts` | `agent/opencode/codefree_real_db_test.go` | 对真实 codefree.db 读标题/消息数（`-tags codefree_integration`） |
-| `TestRealCLI_*` | `agent/opencode/codefree_cli_integration_test.go` | 真实 CLI 验收（`-tags codefree_integration`） |
-| `TestConfigExampleTOML_*` | `embed_test.go` | 配置模板可解析 + 不含已删适配器 |
-| `TestDocsHaveNoDanglingLinks` 等 | `docs_links_test.go` | 文档死链（曾揪出 5 条） |
+| F1 | `config.example.toml` 把 `allow_from` 写在 `[[projects]]` 下 → **被静默丢弃**，机器人对所有人开放；且 `ProjectConfig` 根本没这个字段。已移到平台层 + 启动时打 WARN | **高（安全）** |
+| F2 | 文档声称 `mode="default"` 会"逐次确认"、QUICKSTART 让人"在钉钉里点确认" → **该流程不存在**（`RespondPermission` 是空实现，无头 `run` 直接执行工具） | **高（文档与能力不符）** |
+| F3 | QUICKSTART / INSTALL 让 Windows 用户跑 `cf-connect doctor` → 只打印 `not supported on Windows` | 中 |
+| F4 | 未配 `card_template_id` 时每轮打 WARN；新增 `core.ErrStreamingCardUnavailable` 降为 Debug | 中 |
+| F5 | `card_mode` / `[stream_preview]` 对钉钉完全无效，模板里却有注释说它是"钉钉 AI 卡片开关" | 低 |
+| F6 | `agent_id` 解析了但从未使用（死配置） | 低，**未修** |
+| F7.1 | `/list` `/status` `/start` `/skills` 和进度卡片显示注册名 `opencode` 而非品牌 `CodeFree-O`。新增 `core.AgentDisplayName()` | **高（用户直接可见）** |
+| F7.2 | `bootstrapConfig` 首跑模板写的是**已删除**的 `claudecode`+`feishu` → 全新用户拿到永远起不来的配置。改为写内嵌的 `config.example.toml`（单一真源） | **高** |
+| F7.3 | `[projects.references]` 允许列表只剩已删除适配器 → 功能**永久失效**，且填对的值会**启动报错** | 中 |
+| F7.4 | core 里残留硬编码 telegram 分支（`AGENTS.md` 明令禁止） | 低 |
+| F7.5 | 打包前审出：`README.md`（zip 门面）有 `default（逐次确认）` 等 6 处问题 + 6 个死链；`install.ps1` 会把 `REG_EXPAND_SZ` 的 PATH 降级成 `REG_SZ` | 中 |
 
 ---
 
-## 4. 关键决策与理由（别重新推翻）
+## 4. 关键结论（**别重新推翻**）
 
-| 决策 | 理由（实测） |
+| 结论 | 依据 |
 |---|---|
-| **sqlite 改为进程内必做** | 本机**没有 `sqlite3` CLI**（`Get-Command sqlite3` 为空），而同事机器大概率同样。不做 → 会话标题/消息数永远为空。`modernc.org/sqlite` 本来就是依赖，零新增成本 |
-| 只修阻塞项，不追全绿 | 用户明确选择。基线在 Windows 上本来就不是全绿（见 §5） |
-| `CC_*` / `cc_connect_*` 不改名 | 计划已定：`CC_HOOK_*` 是对外 hook 契约，`cc_connect_*` 是 bridge 协议/缓存键，改名破坏面大且用户无感 |
-| `npm/` 不动 | 计划已定：推迟到 npm 账号/scope 就绪 |
-| 移除上游推广返利链接 | `provider-presets.json` 与两个 README 里的 `referral_code=H65IOClRGu5CM7nn5ykfad` 是**上游作者的**返利标识，fork 不应携带 |
-| 版本号 `v1.5.1-cf.1` | `<上游版本>-cf.<fork修订>`，便于追溯到裁剪自哪个上游 commit |
-| `/upgrade` 保留但只回提示 | 删掉命令会让用户看到"未知命令"；保留可让旧的 `disabled_commands` 配置仍能解析 |
+| **`allow_from` 是平台级**，必须写在 `[projects.platforms.options]`；项目级会被 TOML 解码器**静默丢弃** | `config.ProjectConfig` 无此字段；`platform/dingtalk/dingtalk.go:101` 读 `opts["allow_from"]`。实测对照过 |
+| **`admin_from` 是项目级**（`[[projects]]` 下） | `config/config.go:512` `toml:"admin_from"` |
+| **cf-connect 没有交互式权限确认**，`mode` 只决定是否追加跳过权限的 flag | `agent/opencode/session.go:517` `RespondPermission` 是 no-op；实测写操作无提示直接执行 |
+| **钉钉唯一的流式通道是 AI 卡片**，开关只有 `card_template_id`；`card_mode` 是飞书 Card 2.0 遗留，`[stream_preview]` 需要平台实现 `MessageUpdater`（钉钉没有） | `core/engine.go:4990` 无条件尝试；`core/progress_compact.go:311` 打 `unsupported style` |
+| **用户可见文字用 `core.AgentDisplayName()`，注册/配置/预设/会话归属用 `Agent.Name()`** | `core/registry.go`；`Name()` 必须保持 `"opencode"`（`CreateAgent` 和会话归属靠它） |
+| **`cmd` 的 basename 决定品牌**（含 `codefree`/`code-free`/`code_free` → codefree-o，读 `~/.codefree-o/.local/share/codefree.db`；否则 opencode） | `agent/opencode/sessiondb.go:117` |
+| **首跑模板 = 内嵌的 `config.example.toml`**（不再手抄），回归测试用**注册表**断言，任何裁剪忘了改模板都会失败 | `cmd/cf-connect/main.go` `bootstrapConfig` |
+| **`[projects.references]` 允许列表 = `opencode` / `dingtalk`** | `config/config.go` + `core/reference_render.go`，两处必须同步 |
+| **切换工作目录用 `/dir`（单项目）或 `/workspace`（`mode="multi-workspace"` + `base_dir`）**，改动持久化在项目状态里，**不用改配置**；`/dir` 是特权命令，需要 `admin_from` | `core/engine.go:8481`（cmdDir）/`:8365`（dirApply）/`:1211`（privilegedCommands）；`cmd/cf-connect/main.go:421-432`（多工作区接线）。**真机未实测** |
+| `CC_*` 环境变量与 `cc_connect_*` 内部标识**保持不改名** | 对外 hook 契约 + bridge 协议/缓存键 |
+| `npm/` 不动 | 推迟到 npm 账号/scope 就绪 |
 
 ---
 
-## 5. 测试现状（务必先读懂这段）
+## 5. 测试现状（**务必先读懂这段，否则会白追失败**）
 
-### 稳定结果
+### 稳定通过
 
 ```
-$ .\scripts\go-dev.cmd build ./...     → exit 0
-$ .\scripts\go-dev.cmd vet ./...       → exit 0     （基线时是失败的，见下）
-$ .\scripts\go-dev.cmd test ./core/ -run TestCUJ   → ok
+.\scripts\go-dev.cmd build ./...            → exit 0
+.\scripts\go-dev.cmd vet ./...              → exit 0
+python scripts\check_brand.py               → 0 违规
+python scripts\check_doc_links.py           → 0 死链
+go test ./platform/dingtalk/ . ./tests/release_local/...  → ok
 ```
 
-### Windows 上 `go test ./...` **不是全绿**，且这是**基线既有**问题
+### Windows 上 `go test ./...` **不是全绿**，且基本是基线既有问题
 
-最终稳定失败集合 = 基线稳定失败集合（去掉被删除的包）→ **无新增功能失败**。
-完整清单与逐条根因见 **`docs/BASELINE-TESTS.md`**。摘要：
+本轮最后一次全量结果（与基线逐条比对过，**无新增失败**）：
 
-| 包 | 例数 | 根因（全部 Windows 环境性） |
+| 包 | 例数 | 根因 |
 |---|---|---|
-| `agent/opencode` | 22 | 模型发现依赖真实 CLI 行为 |
-| `cmd/cf-connect` | 1 | `"/tmp/override"` vs `"\\tmp\\override"` 路径分隔符断言 |
-| `config` | 2 | HOME 未隔离（读到真实用户目录） |
-| `core` | 4 | Windows 路径分隔符断言 |
-| `daemon` | 1 | Windows 无 POSIX 0644 语义 |
+| `agent/opencode` | 22 | 模型发现依赖真实 CLI 行为（基线） |
+| `cmd/cf-connect` | 1 | `TestParseDaemonInstallArgs_WorkDirOverridesConfig`，路径分隔符（基线） |
+| `config` | 2 | `TestLoad_DefaultsDataDir`（HOME 未隔离）、`TestLoad_ResolvesEnvPlaceholders`（分隔符）（基线） |
+| `core` | 4 | `TestCompactReplyFooterPath_HomeRelativeDeepPathStaysFull`、`TestAppendImageRefs`、`TestAppendFileRefs_AbsolutizesRelativePaths`、`TestAppendFileRefs_AbsoluteInputsPassthrough`（均 Windows 分隔符，基线） |
+| `daemon` | 2 | `TestSchtasksInstall_TightensExistingScriptFrom0644`（基线，POSIX 权限语义）+ **`TestMetaSaveLoad`（沙箱导致）** |
 
-**唯一被我们修掉的基线失败**：`cmd/cc-connect` 的测试文件缺 `//go:build !windows`
-导致整包无法编译（这会让 `go vet ./...` 失败）。修掉后该包才暴露出上面那 1 例。
-
-### 不稳定（flaky）用例 —— 根因已定位
-
-`core` 里几条 CUJ 用例在全量并发跑时**偶发**失败，但**不是断言失败**，是 Windows 上
-`t.TempDir()` 的清理竞态（engine 后台 goroutine 仍在写文件）：
-
-```
---- FAIL: TestCUJ_A3_ImageReachesAgent (0.02s)
-    testing.go:1369: TempDir RemoveAll cleanup: unlinkat ...: The directory is not empty.
-```
-
-- `TestCUJ_A3_ImageReachesAgent` / `A5_FileReachesAgent` / `H2_TwoPlatformsConcurrentNoBleed`
-  → 单独跑全过（`ok core`，各 0.2s 左右）
-- `TestTimerScheduler_FiresOnTime` → 偶发 91s 后失败，重跑通过
-- `TestCmdShell_MultiWorkspaceIgnoresMissingSharedBinding` → 基线即不稳定
-
-**若新会话看到这些失败，先单独重跑确认，不要当成回归。**
+- **`daemon.TestMetaSaveLoad` 是沙箱造成的**：它直接写真实 `~/.cf-connect/daemon.json`，
+  没有隔离 HOME。工作区外不可写时必然 `Access is denied`，**不是代码缺陷**。
+- **flaky**：`core` 的 `TestCUJ_A3_ImageReachesAgent` / `A5_FileReachesAgent` 偶发失败，
+  报的是 `TempDir RemoveAll cleanup: ... directory is not empty`，**不是断言失败**。
+  单独重跑即过。看到别当回归。
+- 完整基线清单：`docs/BASELINE-TESTS.md`。
 
 ---
 
-## 6. 三个验收命令（DoD）
+## 6. 钉钉联调资源（本轮用过，可复用）
+
+| 项 | 值 |
+|---|---|
+| 应用 | 企业内部应用，`client_id = dingomm29pzoocbgqcvl`，机器人消息接收模式 = **Stream** |
+| Client Secret | **不写在这里**。在 `tmp\dingtalk-smoke\config.toml`（gitignore 覆盖）。⚠️ 见 §10 |
+| 我的钉钉 userid | `01140255060421424301` |
+| 已验证的 AI 卡片模板 | `6b172a70-7dd1-44c1-a02d-654c664715f3.schema`，模板内 Markdown 组件的变量名必须是 `content` |
+| 联调工作目录 | `tmp\dingtalk-smoke\`（含 exe 副本、config.toml、work/） |
+
+**凭证预检**（比跑起来看日志快得多）：
 
 ```powershell
-# 品牌一致性冒烟（0 = 干净）
-python scripts\check_brand.py
-
-# 文档死链（0 = 干净）
-python scripts\check_doc_links.py
-
-# 真实 CLI 验收（需要 codefree-o 已登录；未登录会自动 skip 而不是失败）
-.\scripts\go-dev.cmd test -tags codefree_integration ./agent/opencode/ -run TestRealCLI -v -timeout 1500s
+node -e "fetch('https://api.dingtalk.com/v1.0/oauth2/accessToken',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appKey:process.argv[1],appSecret:process.argv[2]})}).then(async r=>console.log(r.status, await r.text()))" dingomm29pzoocbgqcvl <client_secret>
 ```
 
-本轮最后一次实测结果：
+成功 `200 {"expireIn":7200,...}`；失败 `400 {"code":"invalidClientIdOrSecret"}`。
+**教训**：secret 是 64 字符，肉眼核对首尾各 10 位（本轮第一次就错在末位 C/Z）。
 
-```
-check_brand.py     : scanned 344 files, unexpected old-brand occurrences: 0
-                     CC_* 引用 207 处、cc_connect_* 5 处 —— 均按计划保持不变
-check_doc_links.py : checked 49 links, dead: 0
-TestRealCLI        : 6/6 PASS
-                     （codefree-o 与 opencode 默认模式均可起会话；
-                       yolo 两者都不报 unknown flag；
-                       doctor 报 binary="codefree-o" display="CodeFree-O"）
-```
+**未覆盖**（要做就得自己造场景）：群聊、附件（图片/文件）、`/stop` 打断、
+卡片降级熔断（403/429/5xx）、daemon 模式、cron/timer 端到端、
+卡片内的思考/工具步骤渲染（本轮模型一次吐完，没构造多步长思考场景）。
 
 ---
 
-## 7. 重新打包（改了代码之后）
+## 7. 下一步可选任务
+
+### A. 发布收尾（最直接）
 
 ```powershell
-cd web; pnpm build; cd ..          # 必须先构建，web/dist 会被 go:embed 进二进制
-.\scripts\release-windows.ps1      # 默认读 Makefile 的 VERSION
-# 或指定版本： .\scripts\release-windows.ps1 -Version v1.5.1-cf.2
-```
-
-产出 `dist\cf-connect-<version>-windows-amd64.zip` + `dist\checksums.txt`。
-打包后自检步骤见 `RELEASE.md` §3。
-
-> `make release-all` 是类 Unix 用的（POSIX shell 循环），Windows 上用上面的 ps1。
-
-**改版本号只需改 `Makefile` 的 `VERSION` 一处**，二进制 / 包名 / `--version` 都从这里取。
-
----
-
-## 8. 未完成 / 已知限制（**新会话请从 §9 挑活**）
-
-1. ~~**钉钉真机联调未做**~~ —— **已完成**，见 **`docs/DINGTALK-E2E.md`**。
-   真实凭证实测：Stream 收发、真实 AI 回复、多轮上下文、工具调用、**AI 卡片流式**、
-   会话标题/消息数（补丁 2）、白名单拦截、`~/.cf-connect/` 生成 —— 全部通过。
-   联调同时挖出 7 个问题（F1 白名单静默失效、F7.2 首跑模板写已删适配器 —— 均为高优先级），
-   F1–F5、F7 已修并带回归测试，F6 仅记录。
-   **仍未覆盖**：群聊、附件、`/stop`、卡片降级熔断、daemon 模式（清单见该文档 §5）。
-2. **`npm/` 未改写、未打包、未发布** —— 计划明确推迟。里面仍有 30 处 `cc-connect` 字面量。
-3. **未推送到远程** —— 9 个提交都在本地 `trim-dingtalk-codefree-o` 分支；`main` 未动。
-4. **`tests/integration/engine_platform_test.go` 有上游既有编译错误**
-   （`sess.Send` 参数个数不符），仅在 `-tags integration` 下可见，未修。该文件本轮未改动。
-5. **4 个不稳定用例**（见 §5），根因是测试的 TempDir 清理方式，不是产品代码。
-6. **git 提交历史里 `dist/` 是 gitignore 的** —— 发行包不入库，只作为本地/内网分发产物。
-7. **本轮删除了上游 20 个平台 guide** —— 若将来要恢复某个平台，文档需一并恢复。
-8. **`daemon.TestMetaSaveLoad` 在受限沙箱下会失败** —— 它直接写真实
-   `~/.cf-connect/daemon.json`，没有隔离 HOME。工作区外不可写时必然报
-   `Access is denied`，不是代码缺陷。
-
----
-
-## 9. 下一步可选任务
-
-### A. ~~钉钉真机联调~~（**已完成**）
-
-结果、证据、遗留项与修复记录见 **`docs/DINGTALK-E2E.md`**。
-下一步若要继续钉钉这条线，优先补该文档 §5 的未覆盖项（群聊 / 附件 / 卡片降级 / daemon）。
-
-### B. 推送与发版
-
-```powershell
-git push -u origin trim-dingtalk-codefree-o
-# 打 tag（与 Makefile 的 VERSION 同名）
-git tag v1.5.1-cf.1 && git push origin v1.5.1-cf.1
+git tag v1.0.0 && git push origin trim-dingtalk-codefree-o --tags
 # 在 ItsQifan/cf-connect 的 Release 上传 dist/*.zip + checksums.txt
 ```
 
-### C. 计划 §13「阶段 11」（比赛若报第 1 类才需要）
+⚠️ README 里的文档链接已改成**绝对地址指向 `main`**（为了让 zip 用户也能点开）。
+合并回 main 之前，这些链接指向的是**旧内容**（main 上的 INSTALL.md 还带 doctor 那段）。
+合并后自动正确。
 
-- **Skill（最轻）**：`dingtalk-bridge` skill 放进 `~/.codefree-o/.config/skills`，
-  教 codefree-o 何时用 `cf-connect send` 回推、如何查会话、如何定时提醒
-- **MCP server（较重）**：Go 官方 SDK（`modelcontextprotocol/go-sdk`）写 stdio server，
-  暴露 `notify_dingtalk` / `ask_dingtalk_user` / `list_sessions` / `schedule_reminder`
-- **案例材料**：架构图、DEMO 视频、可复制配置、踩坑清单、提效数据
+### B. 补钉钉未覆盖场景（见 §6 列表）
 
-### D. npm 发布（等账号/scope 就绪）
+优先建议：**群聊**（`share_session_in_channel`、群内 @、卡片 `IM_GROUP` 投递）与
+**附件**——这两块是用户最可能踩到的。
+
+### C. 核实两条存疑项
+
+1. `QUICKSTART.md` §6 说"会话状态/附件会写在 `<work_dir>\.cf-connect\`，记得 gitignore"。
+   **实测未发现该目录**（我的 work_dir 里只有 agent 建的 `hello.txt`，
+   会话状态实际在 `~/.cf-connect\`）。**很可能是错的，请核实后修掉。**
+2. `install.ps1` 的 `REG_EXPAND_SZ` 修复**没有真机验证**（注册表写入被沙箱拒绝）。
+   要验证需在一台 User PATH 含 `%VAR%` 的机器上跑 `install.ps1` 再 `-Uninstall`，
+   确认类型仍是 `ExpandString`。
+
+### D. npm 发布（等账号/scope）
 
 改 `npm/` 包名为 `@itsqifan/cf-connect` + 资产逻辑 + `npm pack` + `npm publish --access public`。
+里面仍有 30 处 `cc-connect` 字面量。
 
 ### E. 可选优化
 
-- 修 §8 第 4 条那个上游既有编译错误（顺手，1 行参数）
-- 给 flaky CUJ 用例加 `t.Cleanup` 等待，消除 TempDir 竞态
-- 把 `make release-all` 也做成 Windows 可用（目前需 POSIX shell）
+- 修 `tests/integration/engine_platform_test.go` 的上游既有编译错误
+  （`sess.Send` 参数个数不符），仅在 `-tags integration` 下可见。
+- 给 flaky 的 CUJ 用例加 `t.Cleanup` 等待，消除 TempDir 竞态。
+- F6：`agent_id` 死配置，要么删要么接上。
+- 把 `make release-all` 也做成 Windows 可用（目前是 POSIX shell 循环）。
 
 ---
 
-## 10. 关键文件速查
+## 8. 重新打包（改了代码之后）
+
+```powershell
+# 1) 先建 web（web/dist 会被 go:embed 进二进制）。沙箱下需要提权一次（esbuild spawn EPERM）
+cd web; corepack pnpm build; cd ..
+
+# 2) 设置环境（见 §2），然后打包
+& .\scripts\release-windows.ps1 -Version v1.0.0
+#   不给 -Version 就读 Makefile 的 VERSION
+```
+
+产出 `dist\cf-connect-<version>-windows-amd64.zip` + `dist\checksums.txt`。
+**改版本号只需改 `Makefile` 的 `VERSION` 一处**。
+
+> `pwsh` 在这台机器上**不在 PATH**（只有 Windows PowerShell），用 `& .\scripts\...ps1` 调用。
+> `make release-all` 是类 Unix 用的。
+
+打包后自检见 `RELEASE.md` §3（**该文件被 gitignore，是本地 runbook**）。
+
+---
+
+## 9. 关键文件速查
 
 | 文件 | 作用 |
 |---|---|
-| `docs/DINGTALK-E2E.md` | **钉钉真机联调报告**（逐条验收 + 6 个发现 + 复现步骤 + 修复记录） |
-| `docs/ACCEPTANCE.md` | **对照计划 §11 的逐条验收报告**（含未做项、证据、命令输出） |
-| `docs/BASELINE-TESTS.md` | 裁剪前的基线失败清单（证明"无新增失败"的依据） |
-| `RELEASE.md` | 发行/构建/打包自检/内网分发/升级/发版检查清单 |
-| `QUICKSTART.md` | 3 步上手 + 排障表（随 zip 分发） |
-| `config.example.toml` | 237 行完整配置（已内嵌进二进制，`cf-connect config example` 输出它） |
-| `agent/opencode/sessiondb.go` | 进程内 sqlite + 品牌感知的 DB 路径解析（补丁 2 + 增强） |
-| `agent/opencode/opencode.go` | 补丁 1（`resolvePermissionFlag`）+ 补丁 3（`GlobalMemoryFile` / 别名 / `AgentDoctorInfo`） |
-| `agent/opencode/session.go` | `buildRunArgs`（yolo flag 注入点） |
-| `scripts/release-windows.ps1` | Windows 打包 |
-| `scripts/check_brand.py` | 品牌一致性冒烟（DoD §7） |
-| `scripts/check_doc_links.py` | 文档死链检查 |
-| `scripts/go-dev.cmd` | Go 工具链包装（探测 GOROOT，默认 goproxy.cn） |
-| `docs/dingtalk.md` / `docs/usage.md` | 钉钉适配器细节 / 命令用法 |
+| `docs/DINGTALK-E2E.md` | **钉钉联调验收报告**（逐条验收 + 7 个发现 + 复现 + 修复记录） |
+| `docs/BASELINE-TESTS.md` | 裁剪前的基线失败清单（"无新增失败"的依据） |
+| `HANDOFF.md` | 本文 |
+| `RELEASE.md` | 发行/构建/打包自检/分发（**gitignored，本地**） |
+| `QUICKSTART.md` | 3 步上手 + 排障（随 zip 分发，**离线自足、无相对链接**） |
+| `config.example.toml` | 完整配置模板（内嵌进二进制，`cf-connect config example` 输出它） |
+| `core/registry.go` | `AgentDisplayName()`——用户可见名字的解析 |
+| `agent/opencode/sessiondb.go` | 品牌感知的 DB 路径解析（补丁 2 + 进程内 sqlite） |
+| `agent/opencode/opencode.go` | `permission_flag` 解析、`GlobalMemoryFile`、别名、`AgentDoctorInfo` |
+| `agent/opencode/session.go` | `buildRunArgs`（yolo flag 注入点）、`RespondPermission`（no-op） |
+| `platform/dingtalk/card.go` | AI 卡片（createAndDeliver + streaming） |
+| `scripts/release-windows.ps1` / `go-dev.cmd` / `check_brand.py` / `check_doc_links.py` | 工具 |
+| `tmp/dingtalk-smoke/config.toml` | 联调用的**可用配置**（含真实 secret），可直接抄 |
+
+---
+
+## 10. 安全注意
+
+1. **`tmp\dingtalk-smoke\config.toml` 里有真实的 Client Secret。**
+   `tmp/` 被 gitignore 覆盖，所以不会进库；但**别打包整个仓库发人**。
+   新会话若要重跑联调，直接抄这份配置（改 `work_dir` 即可）。
+2. 本轮已确认**全仓库（除 tmp/）不含明文 secret**（grep 过）。
+3. codefree-o 的全局配置 `~/.codefree-o/.config/codefree.json` 里挂了一个指向**内网 MySQL**
+   的 MCP（明文账号口令）。这意味着**谁能对机器人说话，谁就能驱动一个能访问那个库的 agent**。
+   `allow_from` 必须设——这正是 F1 被定为高优先级的原因。
 
 ---
 
 ## 11. 踩过的坑（省得重踩）
 
-1. **`.tmp-tools/` 已删除** —— 本轮所有临时脚本已清掉；有用内容已迁到
-   `docs/`（记录）与 `scripts/`（工具）。
-2. **PowerShell 里 `"..." > file` 是 UTF-16** —— 会把 TOML/JSON 写成 UTF-16，
+1. **别把 `.go` 文件放进 `tmp/`** —— 它会被 `go test ./...` 当成一个包去编译，
+   报 `FAIL .../tmp [build failed]`。我用 `.bak` 后缀备份就没这问题。
+2. **`.cmd` 包装脚本里不能出现 `|`** —— 会被 cmd.exe 当管道。
+   传正则给 `go test -run` 时避开（用单个测试名或公共子串）。本轮又踩了一次。
+3. **仓库是 CRLF 检出** —— `gofmt -l` 会把 **152 个文件**（含我没碰过的）全列出来。
+   要判断真实格式问题，先把内容规范化成 LF 再跑 gofmt。**别直接 `gofmt -w`**。
+4. **`check_doc_links.py` 会扫描仓库内解压出来的 zip 目录**，把包内文档的链接报成死链。
+   跑之前先清掉解压目录。
+5. **PowerShell 里 `"..." > file` 是 UTF-16** —— 会把 TOML/JSON 写成 UTF-16，
    解析器报 "files cannot contain NULL bytes"。用
    `[System.IO.File]::WriteAllText($p, $t, (New-Object System.Text.UTF8Encoding($false)))`。
-3. **`Set-Content -Encoding utf8` 会加 BOM** —— 提交信息开头带 BOM 会污染
-   `git log`；写提交信息用上面的 UTF8Encoding($false)。
-4. **`.cmd` 包装脚本里不能出现 `|`** —— 会被 cmd.exe 当管道解释。
-   传正则给 `go test -run` 时避开 `|`（用单个测试名或 `-run 'Codefree'` 这类）。
-5. **控制台显示中文会乱码** —— PowerShell 输出 CJK 显示成 `����`，但文件本身是好的。
+6. **`Set-Content -Encoding utf8` 会加 BOM** —— 提交信息开头带 BOM 会污染 `git log`；
+   写提交信息用上面的 UTF8Encoding($false)，再 `git commit -F`。
+7. **控制台显示中文会乱码** —— PowerShell 输出 CJK 显示成乱码，但文件本身是好的。
    判断 CJK 用正则 `[\u4e00-\u9fff]`，别用肉眼。
-6. **`scripts/` 原本被 gitignore** —— 已加 `!scripts/` / `!scripts/**` 否定规则。
-7. **`git mv`/`Rename-Item` 目录会被正在运行的测试二进制锁住** —— 先 `job_kill`
-   或等测试跑完。
-8. **codefree-o 未登录时会以 OAuth 提示阻塞并超时**（约 190s），
-   不是适配器 bug；`TestRealCLI` 已识别该情况并 skip。
+8. **codefree-o 未登录时会以 OAuth 提示阻塞并超时**（约 190s），不是适配器 bug；
+   `TestRealCLI` 已识别并 skip。
 9. **codefree-o 在进程结束后仍短暂持有 work_dir 句柄** —— Windows 上
    `t.TempDir()` 清理会报 sharing violation；集成测试用 `newWorkDir()` 重试规避。
-10. **别在 `core/` 里写平台名** —— `AGENTS.md` 有硬性约定，本轮已清掉
-    `"telegram"` / `"slack"` 硬编码分支。
+10. **别在 `core/` 里写平台/agent 名** —— `AGENTS.md` 有硬性约定。
+    本轮又清掉一处残留（F7.4）；新写代码时注意，`Agent.Name()` 也不该直接进用户可见文案。
 
 ---
 
@@ -343,18 +328,13 @@ git tag v1.5.1-cf.1 && git push origin v1.5.1-cf.1
 
 ```powershell
 cd E:\my_idea_workspace\cf-connect
-git log --oneline -3                        # 确认在 774a2f6
+git log --oneline -3                        # 确认在 72c2be8（或其后仅多一个 docs: handoff 提交）
+$env:GOCACHE="E:\my_idea_workspace\cf-connect\tmp\gocache"   # 沙箱下必须
+$env:GOTMPDIR="E:\my_idea_workspace\cf-connect\tmp\gotmp"
 .\scripts\go-dev.cmd build ./...            # 应 exit 0
-.\scripts\go-dev.cmd test ./core/ -run TestCUJ   # 应 ok（偶发 TempDir flaky，重跑即可）
+.\scripts\go-dev.cmd test ./core/ -run TestCUJ   # 应 ok（偶发 flaky，重跑即可）
 python scripts\check_brand.py               # 应 0 违规
-Get-ChildItem dist                          # 应有 zip + checksums.txt
+Get-ChildItem dist                          # 应有 v1.0.0 的 zip + checksums.txt
 ```
 
-> 若 `go build` 报 `open C:\Users\...\go-build\...: Access is denied`（受限沙箱/只读
-> `%LOCALAPPDATA%`），给 `GOCACHE` 指一个可写目录即可：
-> `$env:GOCACHE="<repo>\tmp\gocache"`。注意别把 `.go` 文件放进 `tmp/`，
-> 它会被 `go test ./...` 当成一个包去编译。
-> （本轮已生成 `tmp\gocache`，约 275 MB，gitignore 覆盖；嫌大可直接删，Go 会重建。）
-
-然后读 **`docs/DINGTALK-E2E.md`**（钉钉联调全貌）→ **`docs/ACCEPTANCE.md`**（裁剪验收）
-→ 决定做 §9 里的哪一项。
+然后读 **`docs/DINGTALK-E2E.md`**（联调全貌与 7 个缺陷）→ 决定做 §7 里的哪一项。
