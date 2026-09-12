@@ -193,11 +193,16 @@ cf-connect daemon uninstall
 ```bash
 cf-connect --version              # 版本与构建信息
 cf-connect config path            # 实际使用的配置文件路径
-cf-connect doctor                 # 自检：agent CLI、数据目录、权限
 cf-connect config example         # 打印完整配置模板
 ```
 
-在钉钉里对机器人发 `/whoami` 可以拿到自己的 userid，用来配 `allow_from`。
+> `cf-connect doctor` **不要用**：在 Windows 上它只打印
+> `doctor command is not supported on Windows`，什么都不检查；
+> 即便在 Unix 上，它当前也只实现 `doctor user-isolation`。
+> 判断是否装好请看启动日志（`dingtalk: stream connected` / `cf-connect is running`）。
+
+在钉钉里对机器人发 `/whoami` 可以拿到自己的 userid，用来配 `allow_from`
+（注意必须写在 `[projects.platforms.options]` 下）。
 
 ---
 
@@ -244,8 +249,7 @@ cf-connect daemon uninstall
 见 [QUICKSTART.md 的排障章节](./QUICKSTART.md#4-排障)，以及：
 
 ```bash
-cf-connect doctor                # 一键自检
-cf-connect daemon logs -n 200    # 最近的日志
+cf-connect daemon logs -n 200    # 最近的日志（首选；doctor 在 Windows 上是空操作）
 ```
 
 ---
