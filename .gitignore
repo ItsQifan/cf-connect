@@ -72,7 +72,12 @@ web/tsconfig.tsbuildinfo
 # Testing & temporary files
 # ============================================================================
 test/
+# Upstream ignored scripts/ wholesale; this fork ships its release and
+# verification scripts there, so track that directory but keep ignoring
+# anything loose at the repo root.
 scripts/
+!scripts/
+!scripts/**
 tmp/
 temp/
 # Workspace state files written by tests that exercise the workspace pool
