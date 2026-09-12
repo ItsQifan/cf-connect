@@ -5,9 +5,12 @@
 
 - **仓库**：`E:\my_idea_workspace\cf-connect`
 - **分支**：`trim-dingtalk-codefree-o`（**未合并回 main，未推送**）
-- **HEAD**：`80b243d`
+- **HEAD**：`774a2f6`（本文件所在提交）
 - **上游基线 tag**：`baseline-upstream-3a6534d`（= 上游 cc-connect `3a6534d`）
-- **工作树**：干净（`git status` 无输出；`dist/` 被 gitignore，属预期）
+- **工作树**：联调修复后有未提交改动（`config.example.toml` / `QUICKSTART.md` /
+  `config/config.go` / `core/engine.go` / `core/interfaces.go` / `platform/dingtalk/dingtalk.go` /
+  `embed_test.go` / `config/config_test.go` / `platform/dingtalk/dingtalk_test.go` /
+  `docs/DINGTALK-E2E.md` / `HANDOFF.md`；`dist/` 被 gitignore，属预期）
 - **改造计划原文**：`E:\my_idea_workspace\workspace_obsidian\codefree-connect-plan.md`
 - **本轮核心交付**：`dist/cf-connect-v1.5.1-cf.1-windows-amd64.zip`（6.43 MB）
 
@@ -235,9 +238,12 @@ cd web; pnpm build; cd ..          # 必须先构建，web/dist 会被 go:embed 
 
 ## 8. 未完成 / 已知限制（**新会话请从 §9 挑活**）
 
-1. **钉钉真机联调未做** —— 需要真实钉钉企业内部应用凭证（`client_id`/`client_secret`）。
-   `platform/dingtalk` 单测通过（`ok platform/dingtalk`），但端到端收发消息、
-   AI 卡片流式、权限确认**均未验证**。这是交付前最大的一块空白。
+1. ~~**钉钉真机联调未做**~~ —— **已完成**，见 **`docs/DINGTALK-E2E.md`**。
+   真实凭证实测：Stream 收发、真实 AI 回复、多轮上下文、工具调用、**AI 卡片流式**、
+   会话标题/消息数（补丁 2）、白名单拦截、`~/.cf-connect/` 生成 —— 全部通过。
+   联调同时挖出 7 个问题（F1 白名单静默失效、F7.2 首跑模板写已删适配器 —— 均为高优先级），
+   F1–F5、F7 已修并带回归测试，F6 仅记录。
+   **仍未覆盖**：群聊、附件、`/stop`、卡片降级熔断、daemon 模式（清单见该文档 §5）。
 2. **`npm/` 未改写、未打包、未发布** —— 计划明确推迟。里面仍有 30 处 `cc-connect` 字面量。
 3. **未推送到远程** —— 9 个提交都在本地 `trim-dingtalk-codefree-o` 分支；`main` 未动。
 4. **`tests/integration/engine_platform_test.go` 有上游既有编译错误**
@@ -245,25 +251,18 @@ cd web; pnpm build; cd ..          # 必须先构建，web/dist 会被 go:embed 
 5. **4 个不稳定用例**（见 §5），根因是测试的 TempDir 清理方式，不是产品代码。
 6. **git 提交历史里 `dist/` 是 gitignore 的** —— 发行包不入库，只作为本地/内网分发产物。
 7. **本轮删除了上游 20 个平台 guide** —— 若将来要恢复某个平台，文档需一并恢复。
+8. **`daemon.TestMetaSaveLoad` 在受限沙箱下会失败** —— 它直接写真实
+   `~/.cf-connect/daemon.json`，没有隔离 HOME。工作区外不可写时必然报
+   `Access is denied`，不是代码缺陷。
 
 ---
 
 ## 9. 下一步可选任务
 
-### A. 钉钉真机联调（优先级最高，交付阻塞项）
+### A. ~~钉钉真机联调~~（**已完成**）
 
-```powershell
-cd D:\tmp\cf-smoke          # 或解压 zip 的任意目录
-copy config.example.toml config.toml
-notepad config.toml         # 填 work_dir / cmd / client_id / client_secret
-.\cf-connect.exe            # 前台运行，看日志
-# 钉钉里发消息 → 应该收到流式回显
-# 发 /whoami → 拿到 userid → 填进 allow_from
-```
-
-验证清单：消息收发、流式回显、AI 卡片（若配了 `card_template_id`）、
-权限确认（`mode = "default"`）、会话列表标题/消息数（补丁 2 的最终验证）、
-`~/.cf-connect/` 正确生成。
+结果、证据、遗留项与修复记录见 **`docs/DINGTALK-E2E.md`**。
+下一步若要继续钉钉这条线，优先补该文档 §5 的未覆盖项（群聊 / 附件 / 卡片降级 / daemon）。
 
 ### B. 推送与发版
 
@@ -298,6 +297,7 @@ git tag v1.5.1-cf.1 && git push origin v1.5.1-cf.1
 
 | 文件 | 作用 |
 |---|---|
+| `docs/DINGTALK-E2E.md` | **钉钉真机联调报告**（逐条验收 + 6 个发现 + 复现步骤 + 修复记录） |
 | `docs/ACCEPTANCE.md` | **对照计划 §11 的逐条验收报告**（含未做项、证据、命令输出） |
 | `docs/BASELINE-TESTS.md` | 裁剪前的基线失败清单（证明"无新增失败"的依据） |
 | `RELEASE.md` | 发行/构建/打包自检/内网分发/升级/发版检查清单 |
@@ -343,11 +343,18 @@ git tag v1.5.1-cf.1 && git push origin v1.5.1-cf.1
 
 ```powershell
 cd E:\my_idea_workspace\cf-connect
-git log --oneline -3                        # 确认在 80b243d
+git log --oneline -3                        # 确认在 774a2f6
 .\scripts\go-dev.cmd build ./...            # 应 exit 0
-.\scripts\go-dev.cmd test ./core/ -run TestCUJ   # 应 ok
+.\scripts\go-dev.cmd test ./core/ -run TestCUJ   # 应 ok（偶发 TempDir flaky，重跑即可）
 python scripts\check_brand.py               # 应 0 违规
 Get-ChildItem dist                          # 应有 zip + checksums.txt
 ```
 
-然后读 **`docs/ACCEPTANCE.md`**（全貌）→ 决定做 §9 里的哪一项。
+> 若 `go build` 报 `open C:\Users\...\go-build\...: Access is denied`（受限沙箱/只读
+> `%LOCALAPPDATA%`），给 `GOCACHE` 指一个可写目录即可：
+> `$env:GOCACHE="<repo>\tmp\gocache"`。注意别把 `.go` 文件放进 `tmp/`，
+> 它会被 `go test ./...` 当成一个包去编译。
+> （本轮已生成 `tmp\gocache`，约 275 MB，gitignore 覆盖；嫌大可直接删，Go 会重建。）
+
+然后读 **`docs/DINGTALK-E2E.md`**（钉钉联调全貌）→ **`docs/ACCEPTANCE.md`**（裁剪验收）
+→ 决定做 §9 里的哪一项。

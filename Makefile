@@ -3,10 +3,12 @@ MODULE     := github.com/ItsQifan/cf-connect
 CMD        := ./cmd/cf-connect
 DIST       := dist
 
-# Version scheme for this fork: <upstream version>-cf.<fork revision>.
-# The upstream part tracks the cc-connect commit this tree was trimmed from, so
-# the two can be compared at a glance.
-VERSION := v1.5.1-cf.1
+# Version scheme: this fork shipped its trimmed line as <upstream version>-cf.<n>
+# (the upstream part tracked the cc-connect commit the tree was trimmed from).
+# v1.0.0 starts a clean line for the standalone product: DingTalk + CodeFree-O,
+# with the live-verified release. `git log` still reaches the upstream baseline
+# through the baseline-upstream-3a6534d tag.
+VERSION := v1.0.0
 COMMIT     := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 BUILD_TIME := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 

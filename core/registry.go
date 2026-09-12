@@ -1,6 +1,9 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // PlatformFactory creates a Platform from config options.
 type PlatformFactory func(opts map[string]any) (Platform, error)
@@ -59,4 +62,31 @@ func CreateAgent(name string, opts map[string]any) (Agent, error) {
 		return nil, fmt.Errorf("unknown agent %q, available: %v", name, available)
 	}
 	return f(opts)
+}
+
+// AgentDisplayName returns the label to show users for this agent.
+//
+// Agent.Name() is the registry key used to create instances and to tag session
+// ownership, so it stays stable ("opencode"). But one adapter can drive more
+// than one CLI brand — the opencode adapter also runs codefree-o, a rebrand —
+// and showing the registry key in chat would label a CodeFree-O deployment as
+// "opencode 会话列表".
+//
+// Agents that implement AgentDoctorInfo expose the name of the CLI they are
+// actually configured to drive, so prefer that and fall back to the registry
+// name for agents that do not.
+//
+// Use this for anything a user reads (list/status/skills titles, progress
+// labels). Keep using Agent.Name() for registry lookups, config keys, preset
+// lookups and session bookkeeping.
+func AgentDisplayName(agent Agent) string {
+	if agent == nil {
+		return ""
+	}
+	if info, ok := agent.(AgentDoctorInfo); ok {
+		if n := strings.TrimSpace(info.CLIDisplayName()); n != "" {
+			return n
+		}
+	}
+	return agent.Name()
 }

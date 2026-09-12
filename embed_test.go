@@ -99,3 +99,66 @@ func TestConfigExampleTOML_DocumentsCodefreeOptions(t *testing.T) {
 		}
 	}
 }
+
+// TestConfigExampleTOML_AllowFromIsPlatformLevel is the regression test for the
+// silently-ignored-allowlist bug.
+//
+// `allow_from` is read by the platform adapter out of
+// [projects.platforms.options]. It is not a field of ProjectConfig, and
+// BurntSushi/toml ignores unknown keys, so the version of this template that
+// documented `allow_from` under [[projects]] produced a bot that accepted every
+// user while appearing to be locked to one — no error, no warning.
+//
+// The shipped template is what users actually copy, so pin the level it
+// documents. (config.TestMisplacedKeyWarning_* covers the startup warning that
+// now catches hand-edited configs.)
+func TestConfigExampleTOML_AllowFromIsPlatformLevel(t *testing.T) {
+	section := ""
+	allowFromSections := map[string]int{}
+
+	for _, line := range strings.Split(ConfigExampleTOML, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "[") {
+			section = trimmed
+			continue
+		}
+		// A commented-out example is still documentation of where the key goes.
+		key := strings.TrimSpace(strings.TrimPrefix(trimmed, "#"))
+		if strings.HasPrefix(key, "allow_from") {
+			allowFromSections[section]++
+		}
+	}
+
+	if allowFromSections["[projects.platforms.options]"] == 0 {
+		t.Errorf("config.example.toml does not document allow_from under "+
+			"[projects.platforms.options]; occurrences by section: %v", allowFromSections)
+	}
+	if n := allowFromSections["[[projects]]"]; n != 0 {
+		t.Errorf("config.example.toml documents allow_from under [[projects]] "+
+			"(%d occurrence(s)); that key is dropped silently by the TOML decoder, "+
+			"leaving the bot open to everyone", n)
+	}
+}
+
+// TestConfigExampleTOML_DoesNotAdvertiseDeadDingTalkSwitches guards the other
+// half of the DingTalk smoke-test findings: `card_mode` is an upstream Feishu
+// Card 2.0 switch and `[stream_preview]` needs a platform MessageUpdater, which
+// the DingTalk adapter does not implement. Shipping them in this DingTalk-only
+// template sends users down a path that cannot work.
+func TestConfigExampleTOML_DoesNotAdvertiseDeadDingTalkSwitches(t *testing.T) {
+	for _, line := range strings.Split(ConfigExampleTOML, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "card_mode") {
+			t.Errorf("config.example.toml sets an active card_mode; it has no "+
+				"effect on DingTalk (AI Card streaming is switched by "+
+				"card_template_id): %q", trimmed)
+		}
+	}
+	if strings.Contains(ConfigExampleTOML, "\n[stream_preview]") {
+		t.Error("config.example.toml ships an active [stream_preview] block; " +
+			"DingTalk has no MessageUpdater, so it is silently ignored")
+	}
+}

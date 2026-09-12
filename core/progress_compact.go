@@ -348,6 +348,11 @@ func normalizeProgressAgentLabel(name string) string {
 		return "iFlow"
 	case "opencode":
 		return "OpenCode"
+	case "codefree-o", "codefree", "codefreeo":
+		// The opencode adapter also drives codefree-o; callers should pass
+		// AgentDisplayName(), but map the raw names too so a label never
+		// renders as "Codefree-o".
+		return "CodeFree-O"
 	case "pi":
 		return "PI"
 	default:

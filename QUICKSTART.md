@@ -63,14 +63,18 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
    - 机器人名称随意
    - **消息接收模式：选择「Stream 模式」** ← 关键，选这个就不需要公网 IP、不需要配回调地址
    - 发布/保存
-5. （可选，用 AI 卡片流式回显才需要）
-   **卡片平台** 里新建一个卡片模板，记下模板 ID 和内容字段名，
-   对应配置里的 `card_template_id` / `card_template_key`。
-   不配也能用：回复会以普通 markdown 消息发出。
+5. （可选，想要**流式打字机效果**才需要）
+   钉钉开放平台 → **卡片平台** → 新建一个 **AI 卡片**模板，
+   在卡片里放一个 **Markdown** 组件，并把它的内容绑定到一个变量，变量名填 `content`；
+   发布后记下模板 ID（形如 `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.schema`），
+   填到配置的 `card_template_id`。
+   不配也能用，但**没有流式**：整轮跑完才一次性发出答案（通常等十几秒）。
 
 6. **把自己的钉钉 userid 填进 `allow_from`**（推荐）
    先按第 3 步跑起来，在钉钉里对机器人发 `/whoami`，它会回你的 userid。
-   然后把该 ID 填进 `config.toml` 的 `allow_from`，避免别人误用你的额度。
+   然后把该 ID 填进 `config.toml` 里 **`[projects.platforms.options]` 段下的**
+   `allow_from`，避免别人误用你的额度。
+   ⚠️ 不要填在 `[[projects]]` 下——那里会被静默忽略，等于没设。
 
 ---
 
@@ -94,7 +98,7 @@ type = "opencode"
 [projects.agent.options]
 work_dir = "E:\\work\\my-project"    # 你希望它改代码的目录
 cmd = "codefree-o"                   # 或填 codefree-o.exe 的绝对路径
-mode = "default"                     # 先用 default，确认没问题再考虑 yolo
+mode = "default"                     # 只决定追加哪个权限 flag，不是"安全模式"，见下方说明
 
 [[projects.platforms]]
 type = "dingtalk"
@@ -102,7 +106,19 @@ type = "dingtalk"
 [projects.platforms.options]
 client_id = "第 2 步拿到的 AppKey"
 client_secret = "第 2 步拿到的 AppSecret"
+# 建议填上，否则谁都能用你的机器人（注意必须写在 [projects.platforms.options] 里）
+# allow_from = "你的 userid"
 ```
+
+> ⚠️ **`mode = "default"` 不是安全开关。** 它只是不追加"跳过权限"的 flag，
+> 裁决权在 CLI 自己手上；而无人值守调用（`run`）下 codefree-o / opencode 会**直接执行工具**，
+> 不会询问。cf-connect 里也没有"权限确认"这个环节——适配器的 `RespondPermission`
+> 是空实现，钉钉里不会出现允许/拒绝按钮。
+> 需要真正的工具管控，请配置 CLI 自身的权限规则，或把 agent 放进沙箱/容器里跑。
+>
+> ⚠️ **`allow_from` 必须写在 `[projects.platforms.options]` 下。** 写在 `[[projects]]`
+> 下不是"不生效"，而是会被 TOML 解码器**静默丢弃**（既不报错也不告警），
+> 结果就是机器人对所有人开放。
 
 > **强烈建议 `cmd` 填绝对路径。** 后台服务（daemon）通常不继承你当前终端的 PATH。
 > 用 `where codefree-o` 可以查到路径。
@@ -119,7 +135,9 @@ client_secret = "第 2 步拿到的 AppSecret"
 你好，用一句话介绍你自己
 ```
 
-能在钉钉里收到流式回显就说明通了。
+能在钉钉里收到回复就说明链路通了。
+（**默认不会"流式"**：没有配 `card_template_id` 时，整轮跑完才把答案一次性发出来，
+通常要等十几秒。想要逐字刷新的卡片效果，见第 2 步的第 5 点。）
 
 ### 常驻运行（验证通过后再装）
 
@@ -133,22 +151,32 @@ client_secret = "第 2 步拿到的 AppSecret"
 
 ```powershell
 .\cf-connect.exe --version
-.\cf-connect.exe doctor            # 自检：CLI、数据目录、权限
 .\cf-connect.exe daemon stop
 .\cf-connect.exe daemon uninstall
 ```
+
+> `cf-connect doctor` 不要用：在 Windows 上它只打印
+> `doctor command is not supported on Windows`，什么都不检查。
 
 ---
 
 ## 4. 排障
 
-### 先跑自检
+### 先看日志，别跑 doctor
 
 ```powershell
-.\cf-connect.exe doctor
+# 前台运行：日志直接打在终端上
+# daemon 运行：
+cf-connect daemon logs -n 100
 ```
 
-它会检查 agent CLI 是否存在、数据目录是否可写、配置是否合法。
+启动正常的标志是这几行（本项目实测输出）：
+
+```
+level=INFO msg="dingtalk: stream connected" client_id=dingxxxxxxxx
+level=INFO msg="platform ready" project=... platform=dingtalk
+level=INFO msg="cf-connect is running" projects=1
+```
 
 ### 常见问题
 
@@ -156,11 +184,14 @@ client_secret = "第 2 步拿到的 AppSecret"
 |---|---|
 | 启动报 `"codefree-o" CLI not found in PATH` | `cmd` 没配或路径不对。用 `where codefree-o` 查绝对路径填进去 |
 | 钉钉里发消息没有任何反应 | ① 机器人消息接收模式不是 **Stream** ② `client_id`/`client_secret` 填错 ③ 应用没发布 ④ 看日志：`cf-connect daemon logs -n 100` |
+| 启动日志报 `invalidClientIdOrSecret` | 凭证不对，通常是 Client Secret 复制漏/多了字符。它是 64 位，核对首尾各 10 位 |
 | 回复里没有会话标题 / 消息数 | 你的 CodeFree-O 数据目录不是默认位置。用 `codefree-o debug paths` 看 `data` 路径，把 `data_dir` 填进配置 |
 | 会话列表是空的 | 该 `work_dir` 下还没跑过会话，先在钉钉里让机器人干点活 |
-| 一直卡在"等待权限确认" | 正常行为（`mode = "default"`）。要么在钉钉里点确认，要么改成 `mode = "yolo"` |
+| 回复要等很久，且日志有 `streaming card creation failed` | 正常：没配 `card_template_id`，只能等整轮结束。配了卡片模板才有流式 |
+| 日志出现 `allow_from is not set — all users are permitted` | 你把它写在 `[[projects]]` 下了。挪到 `[projects.platforms.options]` |
 | `yolo` 模式报 unknown flag | 你的 CLI 版本不认 `--auto`。在配置里设 `permission_flag = "--dangerously-skip-permissions"`（老版 opencode），或 `"none"` |
-| 别人也能用我的机器人 | 填 `allow_from = "你的userid"`（`/whoami` 可查） |
+| 别人也能用我的机器人 | 在 **`[projects.platforms.options]`** 下填 `allow_from = "你的userid"`（`/whoami` 可查） |
+| 机器人不询问就改了文件 | 预期行为。cf-connect 没有交互式权限确认，`mode = "default"` 也不拦；要管控请配 CLI 自己的权限或上沙箱 |
 | 想换模型 | `codefree-o models` 看可用列表，填 `model = "provider/model"` |
 | 端口/服务冲突 | `daemon status` → `daemon stop` → 检查是否有第二个实例：启动时加 `--force` |
 

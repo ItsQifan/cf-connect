@@ -314,11 +314,11 @@ enclosure_style = "code"
 
 - `normalize_agents`
   - 控制哪些 Agent 输出参与这套引用处理
-  - 当前初始支持：`codex`、`claudecode`、`all`
+  - 当前支持：`opencode`、`all`（本分支只编译 opencode 适配器）
 
 - `render_platforms`
   - 控制在哪些平台发送前应用展示重写
-  - 当前初始支持：`feishu`、`weixin`、`all`
+  - 当前支持：`dingtalk`、`all`（本分支只编译钉钉平台）
 
 - `display_path`
   - 控制路径主体的显示层级

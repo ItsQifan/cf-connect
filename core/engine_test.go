@@ -6265,32 +6265,6 @@ func TestCmdSkills_UsesLegacyTextOnPlatformWithoutCardSupport(t *testing.T) {
 	}
 }
 
-func TestCmdSkills_UsesTelegramSafeNamesOnTelegramPlatform(t *testing.T) {
-	p := &stubPlatformEngine{n: "telegram"}
-	e := NewEngine("test", &stubAgent{}, []Platform{p}, "", LangEnglish)
-	temp := t.TempDir()
-	skillDir := temp + "/telegram-codex-bot"
-	if err := os.Mkdir(skillDir, 0o755); err != nil {
-		t.Fatalf("mkdir skill dir: %v", err)
-	}
-	if err := os.WriteFile(skillDir+"/SKILL.md", []byte("---\ndescription: Demo skill\n---\nDo demo"), 0o644); err != nil {
-		t.Fatalf("write skill file: %v", err)
-	}
-	e.skills.SetDirs([]string{temp})
-
-	e.cmdSkills(p, &Message{SessionKey: "telegram:user1", ReplyCtx: "ctx"})
-
-	if len(p.sent) != 1 {
-		t.Fatalf("sent messages = %d, want 1", len(p.sent))
-	}
-	if !strings.Contains(p.sent[0], "/telegram_codex_bot") {
-		t.Fatalf("skills text = %q, want Telegram-safe skill command", p.sent[0])
-	}
-	if strings.Contains(p.sent[0], "/telegram-codex-bot") {
-		t.Fatalf("skills text = %q, should not show raw hyphenated command", p.sent[0])
-	}
-}
-
 // TestMenuCommandsForPlatform_PassesThroughWithoutMenuLimit pins the post-trim
 // contract: with Telegram gone there is no platform with a native menu-size
 // limit left, so the planner must hand back the full command list unmodified

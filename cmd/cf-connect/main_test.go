@@ -435,3 +435,46 @@ func TestRunTopLevelCommandUnknown(t *testing.T) {
 		t.Fatal("runTopLevelCommand() handled unknown command")
 	}
 }
+
+// TestBootstrapConfig_OnlyNamesCompiledInAdapters is the regression test for the
+// first-run bootstrap template.
+//
+// bootstrapConfig used to write its own hand-rolled template that still selected
+// type = "claudecode" and type = "feishu" — two adapters this fork no longer
+// compiles in — so a fresh `cf-connect` with no config.toml produced a config
+// that could never start. It now writes the embedded config.example.toml, and
+// this test asserts the result against the live registries rather than a
+// hardcoded list, so any future trim that forgets the template fails here.
+func TestBootstrapConfig_OnlyNamesCompiledInAdapters(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nested", "config.toml")
+	if err := bootstrapConfig(path); err != nil {
+		t.Fatalf("bootstrapConfig: %v", err)
+	}
+
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("the bootstrapped config does not load: %v", err)
+	}
+	if len(cfg.Projects) == 0 {
+		t.Fatal("bootstrapped config has no projects")
+	}
+
+	registeredAgents := core.ListRegisteredAgents()
+	registeredPlatforms := core.ListRegisteredPlatforms()
+
+	for _, proj := range cfg.Projects {
+		if !containsString(registeredAgents, proj.Agent.Type) {
+			t.Errorf("bootstrap selects agent type %q, which is not compiled in; registered: %v",
+				proj.Agent.Type, registeredAgents)
+		}
+		if len(proj.Platforms) == 0 {
+			t.Errorf("project %q has no platforms", proj.Name)
+		}
+		for _, plat := range proj.Platforms {
+			if !containsString(registeredPlatforms, plat.Type) {
+				t.Errorf("bootstrap selects platform type %q, which is not compiled in; registered: %v",
+					plat.Type, registeredPlatforms)
+			}
+		}
+	}
+}

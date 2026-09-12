@@ -110,8 +110,8 @@ func TestConfigValidate(t *testing.T) {
 					func() ProjectConfig {
 						p := validProject("demo")
 						p.References = ReferenceConfig{
-							NormalizeAgents: []string{"codex", "claudecode"},
-							RenderPlatforms: []string{"feishu", "weixin"},
+							NormalizeAgents: []string{"opencode"},
+							RenderPlatforms: []string{"dingtalk"},
 							DisplayPath:     "dirname_basename",
 							MarkerStyle:     "emoji",
 							EnclosureStyle:  "code",
@@ -2354,3 +2354,119 @@ func TestCloneAgentConfig(t *testing.T) {
 	})
 }
 
+// TestMisplacedKeyWarning_DetectsProjectLevelAllowFrom is the regression test
+// for the silently-ignored allowlist: `allow_from` written at the [[projects]]
+// level is not a ProjectConfig field, BurntSushi/toml ignores unknown keys, and
+// the user is left believing the bot is locked down while every user is still
+// accepted. The parse result cannot reveal this, so the warning is the only
+// signal — pin it.
+func TestMisplacedKeyWarning_DetectsProjectLevelAllowFrom(t *testing.T) {
+	tests := []struct {
+		name     string
+		toml     string
+		wantWarn int
+	}{
+		{
+			name: "project level is flagged",
+			toml: `
+[[projects]]
+name = "smoke"
+allow_from = "01140255060421424301"
+
+[[projects.platforms]]
+type = "dingtalk"
+
+[projects.platforms.options]
+client_id = "cid"
+client_secret = "secret"
+`,
+			wantWarn: 1,
+		},
+		{
+			name: "platform level is correct and must stay silent",
+			toml: `
+[[projects]]
+name = "smoke"
+
+[[projects.platforms]]
+type = "dingtalk"
+
+[projects.platforms.options]
+client_id = "cid"
+client_secret = "secret"
+allow_from = "01140255060421424301"
+`,
+			wantWarn: 0,
+		},
+		{
+			name: "admin_from belongs at project level and must stay silent",
+			toml: `
+[[projects]]
+name = "smoke"
+admin_from = "01140255060421424301"
+
+[[projects.platforms]]
+type = "dingtalk"
+
+[projects.platforms.options]
+client_id = "cid"
+client_secret = "secret"
+`,
+			wantWarn: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := misplacedKeyWarning([]byte(tt.toml))
+			if len(got) != tt.wantWarn {
+				t.Fatalf("misplacedKeyWarning() = %v (len %d), want %d warning(s)",
+					got, len(got), tt.wantWarn)
+			}
+			if tt.wantWarn > 0 && !strings.Contains(got[0], "allow_from") {
+				t.Errorf("warning does not name the offending key: %q", got[0])
+			}
+			if tt.wantWarn > 0 && !strings.Contains(got[0], "smoke") {
+				t.Errorf("warning does not name the offending project: %q", got[0])
+			}
+		})
+	}
+}
+
+// TestMisplacedKeyWarning_DroppedByDecoder proves the premise behind the
+// warning: a project-level allow_from really does vanish, it does not merely
+// land somewhere harmless.
+func TestMisplacedKeyWarning_DroppedByDecoder(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.toml")
+	body := `
+[[projects]]
+name = "smoke"
+allow_from = "01140255060421424301"
+
+[projects.agent]
+type = "opencode"
+
+[projects.agent.options]
+work_dir = "` + filepath.ToSlash(dir) + `"
+
+[[projects.platforms]]
+type = "dingtalk"
+
+[projects.platforms.options]
+client_id = "cid"
+client_secret = "secret"
+`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	opts := cfg.Projects[0].Platforms[0].Options
+	if _, ok := opts["allow_from"]; ok {
+		t.Fatalf("allow_from unexpectedly reached the platform options: %v", opts)
+	}
+}

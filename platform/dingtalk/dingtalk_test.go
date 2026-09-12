@@ -3,6 +3,7 @@ package dingtalk
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -1440,4 +1441,75 @@ func TestCardTitleFromContent_UsedInReplyPayload(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for reply payload")
 	}
+}
+
+// ──────────────────────────────────────────────────────────────
+// Streaming-card availability
+// ──────────────────────────────────────────────────────────────
+
+// TestCreateStreamingCard_UnconfiguredWrapsSentinel is the regression test for
+// the misleading-log bug found during the live DingTalk run: with no
+// card_template_id — a fully supported, documented configuration — the engine
+// logged
+//
+//	level=WARN msg="streaming card creation failed, falling back to normal messages"
+//
+// on every single turn, which reads as "you misconfigured something". The
+// adapter now wraps core.ErrStreamingCardUnavailable so the engine can log the
+// expected fallback at debug level while still warning on real API failures.
+func TestCreateStreamingCard_UnconfiguredWrapsSentinel(t *testing.T) {
+	created, err := New(map[string]any{
+		"client_id":     "cid",
+		"client_secret": "secret",
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	p, ok := created.(*Platform)
+	if !ok {
+		t.Fatalf("New returned %T, want *Platform", created)
+	}
+	if p.cardTemplateID != "" {
+		t.Fatalf("test premise broken: cardTemplateID = %q, want empty", p.cardTemplateID)
+	}
+
+	_, err = p.CreateStreamingCard(context.Background(), replyContext{})
+	if err == nil {
+		t.Fatal("CreateStreamingCard returned nil error with no card_template_id")
+	}
+	if !errors.Is(err, core.ErrStreamingCardUnavailable) {
+		t.Errorf("error %v does not wrap core.ErrStreamingCardUnavailable; the "+
+			"engine would log it as a WARN on every turn", err)
+	}
+}
+
+// TestCreateStreamingCard_ConfiguredIsNotUnavailable guards the other direction:
+// a real card API failure must NOT be classified as "just not configured", or
+// genuine breakage would be hidden at debug level.
+func TestCreateStreamingCard_ConfiguredIsNotUnavailable(t *testing.T) {
+	p := &Platform{
+		clientID:        "cid",
+		clientSecret:    "secret",
+		robotCode:       "cid",
+		cardTemplateID:  "6b172a70-7dd1-44c1-a02d-654c664715f3.schema",
+		cardTemplateKey: "content",
+		httpClient:      &http.Client{Transport: failingRoundTripper{}},
+	}
+
+	_, err := p.CreateStreamingCard(context.Background(), replyContext{})
+	if err == nil {
+		t.Fatal("CreateStreamingCard returned nil error against a failing transport")
+	}
+	if errors.Is(err, core.ErrStreamingCardUnavailable) {
+		t.Errorf("a configured card failure must not report "+
+			"ErrStreamingCardUnavailable (it would be logged at debug and hidden): %v", err)
+	}
+}
+
+// failingRoundTripper fails every request, keeping the "configured but broken"
+// case off the network.
+type failingRoundTripper struct{}
+
+func (failingRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("test: transport unavailable")
 }

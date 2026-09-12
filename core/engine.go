@@ -4988,14 +4988,20 @@ func (e *Engine) processInteractiveEvents(state *interactiveState, session *Sess
 
 	if scp, ok := state.platform.(StreamingCardPlatform); ok {
 		if sc, err := scp.CreateStreamingCard(e.ctx, state.replyCtx); err != nil {
-			slog.Warn("streaming card creation failed, falling back to normal messages", "error", err)
+			// An unconfigured optional feature is not a failure: the documented
+			// default for DingTalk without card_template_id is plain messages.
+			if errors.Is(err, ErrStreamingCardUnavailable) {
+				slog.Debug("streaming card not configured, using normal messages", "error", err)
+			} else {
+				slog.Warn("streaming card creation failed, falling back to normal messages", "error", err)
+			}
 		} else {
 			streamCard = sc
 			slog.Info("streaming card created for turn", "session", sessionKey)
 		}
 	}
 	sp := newStreamPreview(e.streamPreview, state.platform, state.replyCtx, e.ctx, workspaceRenderer)
-	cp := newCompactProgressWriter(e.ctx, state.platform, state.replyCtx, e.agent.Name(), e.i18n.CurrentLang(), workspaceRenderer)
+	cp := newCompactProgressWriter(e.ctx, state.platform, state.replyCtx, AgentDisplayName(e.agent), e.i18n.CurrentLang(), workspaceRenderer)
 	state.mu.Unlock()
 
 	// Send instant confirmation reply if enabled and no streaming card is active.
@@ -6157,7 +6163,7 @@ func (e *Engine) processInteractiveEvents(state *interactiveState, session *Sess
 					return e.renderOutgoingContentForWorkspace(queued.platform, content, workspaceDir)
 				}
 				sp = newStreamPreview(e.streamPreview, queued.platform, queued.replyCtx, e.ctx, queuedRenderer)
-				cp = newCompactProgressWriter(e.ctx, queued.platform, queued.replyCtx, e.agent.Name(), e.i18n.CurrentLang(), queuedRenderer)
+				cp = newCompactProgressWriter(e.ctx, queued.platform, queued.replyCtx, AgentDisplayName(e.agent), e.i18n.CurrentLang(), queuedRenderer)
 
 				// Reset streaming card state for the next turn
 				streamCard = nil
@@ -6168,7 +6174,11 @@ func (e *Engine) processInteractiveEvents(state *interactiveState, session *Sess
 				// Try to create a new streaming card for the queued turn
 				if scp, ok := queued.platform.(StreamingCardPlatform); ok {
 					if sc, err := scp.CreateStreamingCard(e.ctx, queued.replyCtx); err != nil {
-						slog.Warn("streaming card creation failed for queued turn", "error", err)
+						if errors.Is(err, ErrStreamingCardUnavailable) {
+							slog.Debug("streaming card not configured for queued turn", "error", err)
+						} else {
+							slog.Warn("streaming card creation failed for queued turn", "error", err)
+						}
 					} else {
 						streamCard = sc
 					}
@@ -7138,7 +7148,7 @@ func (e *Engine) cmdList(p Platform, msg *Message, args []string) {
 			end = total
 		}
 
-		agentName := agent.Name()
+		agentName := AgentDisplayName(agent)
 		activeSession := sessions.GetOrCreateActive(msg.SessionKey)
 		activeAgentID := activeSession.GetAgentSessionID()
 
@@ -7426,7 +7436,8 @@ func (e *Engine) composeRichStatusFooter(streaming bool, turnStart time.Time, ag
 //	claude-opus-4-7[1m] · xhigh · out 168 · in 1 cw 971 cr 40.8k · ctx 4%
 //
 // Sections (each skipped when its data is missing):
-//   - model: from session GetModel() / agent.Name()
+//   - model: from session GetModel() (never the agent name — a registry key like
+//     "opencode" is not something to show in a reply footer)
 //   - effort: reasoning_effort (Codex / Claude high/medium/low/xhigh/max)
 //   - token counts: out (output) · in (new input) · cw (cache create) · cr (cache read)
 //   - ctx %: UsedTokens / ContextWindow, capped at 100%
@@ -8772,7 +8783,7 @@ func (e *Engine) cmdStatus(p Platform, msg *Message) {
 
 		e.reply(p, msg.ReplyCtx, e.i18n.Tf(MsgStatusTitle,
 			e.name,
-			agent.Name(),
+			AgentDisplayName(agent),
 			workDirStr,
 			platformStr,
 			uptimeStr,
@@ -9107,7 +9118,7 @@ func (e *Engine) renderListCardSafe(sessionKey string, page int) *Card {
 	card, err := e.renderListCard(sessionKey, page)
 	if err != nil {
 		agent, _ := e.sessionContextForKey(sessionKey)
-		return e.simpleCard(e.i18n.Tf(MsgCardTitleSessions, agent.Name(), 0), "red", err.Error())
+		return e.simpleCard(e.i18n.Tf(MsgCardTitleSessions, AgentDisplayName(agent), 0), "red", err.Error())
 	}
 	return card
 }
@@ -9209,7 +9220,7 @@ func (e *Engine) renderStatusCard(sessionKey string, userID string) *Card {
 
 	statusText := e.i18n.Tf(MsgStatusTitle,
 		e.name,
-		agent.Name(),
+		AgentDisplayName(agent),
 		workDirStr,
 		platformStr,
 		uptimeStr,
@@ -9452,7 +9463,7 @@ func (e *Engine) cmdHelp(p Platform, msg *Message) {
 func (e *Engine) cmdStart(p Platform, msg *Message) {
 	name := e.name
 	if name == "" {
-		name = e.agent.Name()
+		name = AgentDisplayName(e.agent)
 	}
 	e.reply(p, msg.ReplyCtx, fmt.Sprintf(e.i18n.T(MsgWelcome), name))
 }
@@ -13166,7 +13177,7 @@ func (e *Engine) renderListCard(sessionKey string, page int) (*Card, error) {
 	}
 	agentSessions = e.applySessionFilter(agentSessions, sessions)
 	if len(agentSessions) == 0 {
-		return e.simpleCard(e.i18n.Tf(MsgCardTitleSessions, agent.Name(), 0), "turquoise", e.i18n.T(MsgListEmpty)), nil
+		return e.simpleCard(e.i18n.Tf(MsgCardTitleSessions, AgentDisplayName(agent), 0), "turquoise", e.i18n.T(MsgListEmpty)), nil
 	}
 
 	total := len(agentSessions)
@@ -13181,7 +13192,7 @@ func (e *Engine) renderListCard(sessionKey string, page int) (*Card, error) {
 		end = total
 	}
 
-	agentName := agent.Name()
+	agentName := AgentDisplayName(agent)
 	activeSession := sessions.GetOrCreateActive(sessionKey)
 	activeAgentID := activeSession.GetAgentSessionID()
 
@@ -13816,7 +13827,7 @@ func (e *Engine) renderSkillsCard() *Card {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(e.i18n.Tf(MsgSkillsTitle, e.agent.Name(), len(skills)))
+	sb.WriteString(e.i18n.Tf(MsgSkillsTitle, AgentDisplayName(e.agent), len(skills)))
 	for _, s := range skills {
 		sb.WriteString(fmt.Sprintf("  /%s — %s\n", s.Name, s.Description))
 	}
@@ -14896,10 +14907,10 @@ func (e *Engine) cmdSkills(p Platform, msg *Message) {
 		}
 
 		var sb strings.Builder
-		sb.WriteString(e.i18n.Tf(MsgSkillsTitle, e.agent.Name(), len(skills)))
+		sb.WriteString(e.i18n.Tf(MsgSkillsTitle, AgentDisplayName(e.agent), len(skills)))
 
 		for _, s := range skills {
-			sb.WriteString(fmt.Sprintf("  /%s — %s\n", displayCommandForPlatform(p.Name(), s.Name), s.Description))
+			sb.WriteString(fmt.Sprintf("  /%s — %s\n", s.Name, s.Description))
 		}
 
 		sb.WriteString("\n" + e.i18n.T(MsgSkillsHint))
@@ -14908,41 +14919,6 @@ func (e *Engine) cmdSkills(p Platform, msg *Message) {
 	}
 
 	e.replyWithCard(p, msg.ReplyCtx, e.renderSkillsCard())
-}
-
-func displayCommandForPlatform(platformName, command string) string {
-	if !strings.EqualFold(platformName, "telegram") {
-		return command
-	}
-	if sanitized := sanitizeTelegramDisplayCommand(command); sanitized != "" {
-		return sanitized
-	}
-	return command
-}
-
-func sanitizeTelegramDisplayCommand(cmd string) string {
-	cmd = strings.ToLower(cmd)
-	var b strings.Builder
-	for _, c := range cmd {
-		switch {
-		case c >= 'a' && c <= 'z', c >= '0' && c <= '9':
-			b.WriteRune(c)
-		default:
-			b.WriteByte('_')
-		}
-	}
-	result := b.String()
-	for strings.Contains(result, "__") {
-		result = strings.ReplaceAll(result, "__", "_")
-	}
-	result = strings.Trim(result, "_")
-	if len(result) == 0 || result[0] < 'a' || result[0] > 'z' {
-		return ""
-	}
-	if len(result) > 32 {
-		result = result[:32]
-	}
-	return result
 }
 
 // ── /config command ──────────────────────────────────────────

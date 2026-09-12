@@ -249,5 +249,5 @@ Options:
 
 Examples:
   cf-connect agent-sid                         Auto-detect from env (inside a session)
-  cf-connect agent-sid -p mybot -s "discord:123:456"`)
+  cf-connect agent-sid -p mybot -s "dingtalk:d:<conversationId>:<userId>"`)
 }

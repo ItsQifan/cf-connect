@@ -660,6 +660,16 @@ type StreamingCardPlatform interface {
 	CreateStreamingCard(ctx context.Context, replyCtx any) (StreamingCard, error)
 }
 
+// ErrStreamingCardUnavailable reports that a platform supports streaming cards
+// but this deployment has not configured them (for DingTalk: no
+// card_template_id). Falling back to per-event messages is the documented
+// default for such deployments, so the engine logs it at debug level instead of
+// warning — a warning here reads as "you misconfigured something" on every
+// single turn of a perfectly valid setup.
+//
+// Implementations should wrap it: fmt.Errorf("...: %w", ErrStreamingCardUnavailable).
+var ErrStreamingCardUnavailable = errors.New("streaming card is not configured")
+
 // CardStatus represents the visual status of a card header.
 type CardStatus string
 

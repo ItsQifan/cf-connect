@@ -1083,7 +1083,7 @@ var _ core.TypingIndicatorDone = (*Platform)(nil)
 // Implements core.StreamingCardPlatform.
 func (p *Platform) CreateStreamingCard(ctx context.Context, replyCtx any) (core.StreamingCard, error) {
 	if p.cardTemplateID == "" {
-		return nil, fmt.Errorf("dingtalk: card_template_id not configured")
+		return nil, fmt.Errorf("dingtalk: card_template_id not configured: %w", core.ErrStreamingCardUnavailable)
 	}
 	if p.isCardDegraded() {
 		return nil, fmt.Errorf("dingtalk: card API temporarily degraded")

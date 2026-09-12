@@ -81,19 +81,23 @@ level = "info" # debug | info | warn | error
 # -----------------------------------------------------------------------------
 [display]
 mode = "full"              # full | compact | quiet
-# card_mode = "legacy"     # legacy | rich  (rich = DingTalk AI Card streaming)
 thinking_messages = true   # show the model's thinking blocks
 tool_messages = true       # show tool calls and results
 # thinking_max_len = 500
 # tool_max_len = 1000
 
-# Streaming preview: edits one message in place while the agent works.
-# Disabled by default because DingTalk AI Cards already stream natively.
-[stream_preview]
-enabled = false
-# interval_ms = 500
-# min_delta_chars = 24
-# max_chars = 3000
+# NOTE: two upstream blocks are deliberately absent here because they do
+# nothing for DingTalk:
+#
+#   card_mode = "rich"   — switches on Feishu Card 2.0 rich cards. DingTalk's
+#                          AI Card streaming is selected by `card_template_id`
+#                          below, not by this flag.
+#   [stream_preview]     — needs a platform MessageUpdater, which the DingTalk
+#                          adapter does not implement, so it is silently
+#                          ignored ("progress writer disabled: unsupported
+#                          style ... style=legacy" in a debug log).
+#
+# See docs/DINGTALK-E2E.md (finding F5).
 
 # Immediate "received, working on it" acknowledgement.
 [instant_reply]
@@ -141,12 +145,9 @@ enabled = false
 [[projects]]
 name = "my-project"
 
-# Optional: restrict who can talk to the bot (comma-separated DingTalk user IDs;
-# "*" allows everyone). Use /whoami in DingTalk to discover your own ID.
-# Putting your own ID here is the recommended setup for personal deployments.
-# allow_from = "your-dingtalk-userid"
-
 # Optional: who may run admin commands (defaults to allow_from).
+# This one IS project-level. `allow_from` is NOT — it belongs to each platform;
+# see the DingTalk block further down.
 # admin_from = "your-dingtalk-userid"
 
 # --- Agent: CodeFree-O / OpenCode -------------------------------------------
@@ -171,9 +172,18 @@ work_dir = "E:\\work\\my-project"
 #   cmd = ["codefree-o", "--log-level", "warn"]
 cmd = "codefree-o"
 
-# Permission mode.
-#   "default" - the agent asks before risky operations (recommended to start)
-#   "yolo"    - auto-approve tool calls; see permission_flag below
+# Permission mode. This only decides whether a "skip permission" flag is
+# appended to the CLI command line. It does NOT create an allow/deny prompt in
+# the chat — cf-connect has no interactive permission confirmation at all (the
+# agent adapter's RespondPermission is a no-op, so nothing is ever sent to
+# DingTalk for you to approve).
+#   "default" - append nothing. The CLI's own rules decide, and a headless
+#               `run` invocation executes tools WITHOUT asking. Treat this as
+#               "no gate", not as "safe".
+#   "yolo"    - append permission_flag (below), e.g. --auto
+#
+# For real tool gating, configure permissions in the CLI itself, or run the
+# agent inside a sandbox/container. See docs/DINGTALK-E2E.md (finding F2).
 mode = "default"
 
 # Which flag "yolo" mode appends. Defaults to "--auto", which both current
@@ -217,6 +227,16 @@ type = "dingtalk"
 client_id = "your-app-key"
 client_secret = "your-app-secret"
 
+# Optional but strongly recommended: restrict who can talk to the bot
+# (comma-separated DingTalk user IDs; "*" allows everyone). Send /whoami in
+# DingTalk to discover your own ID, then put it here.
+#
+# IMPORTANT: this key MUST live under [projects.platforms.options]. A
+# project-level `allow_from` is not a config field at all — the TOML decoder
+# drops it silently, with no error and no warning, and the bot then accepts
+# everyone.
+# allow_from = "your-dingtalk-userid"
+
 # Optional: the robot code, if it differs from client_id.
 # robot_code = "your-robot-code"
 
@@ -224,8 +244,12 @@ client_secret = "your-app-secret"
 # private session per member.
 # share_session_in_channel = false
 
-# Optional: AI Card streaming. Requires a card template created in the DingTalk
-# developer console; without it, replies are plain markdown messages.
+# Optional: AI Card streaming. This is the ONLY streaming path for DingTalk —
+# without it, replies arrive as one plain markdown message after the whole turn
+# finishes (tens of seconds), and every turn logs a fallback warning.
+# To enable: 钉钉开放平台 → 卡片平台 → 新建「AI 卡片」模板, put a Markdown
+# component in it bound to a variable named `content`, publish, then paste the
+# template ID (…​.schema) here.
 # card_template_id = "your-card-template-id"
 # card_template_key = "content"
 # card_throttle_ms = 300

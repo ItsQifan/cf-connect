@@ -321,8 +321,8 @@ func main() {
 
 	if len(cfg.Projects) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: no projects configured in %s\n", configPath)
-		fmt.Fprintln(os.Stderr, "Add at least one [[project]] section to your config.toml, or run:")
-		fmt.Fprintln(os.Stderr, "  cf-connect init")
+		fmt.Fprintln(os.Stderr, "Add at least one [[projects]] section to your config.toml, or start from the documented template:")
+		fmt.Fprintln(os.Stderr, "  cf-connect config example > config.toml")
 		os.Exit(1)
 	}
 
@@ -1450,42 +1450,19 @@ func resolveConfigPath(explicit string) string {
 	return "config.toml"
 }
 
+// bootstrapConfig writes the first-run config when none exists yet.
+//
+// It writes the embedded config.example.toml verbatim rather than a hand-rolled
+// minimal template. The previous hand-rolled copy had drifted badly: it still
+// selected type = "claudecode" and type = "feishu", two adapters this fork no
+// longer compiles in, so a first run produced a config that could never start.
+// Sharing one source of truth means the bootstrap can never advertise an
+// adapter, or a key level, that the binary does not actually support.
 func bootstrapConfig(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-
-	const tmpl = `# cf-connect configuration
-# Docs: https://github.com/ItsQifan/cf-connect
-
-[log]
-level = "info"
-
-[[projects]]
-name = "my-project"
-
-[projects.agent]
-type = "claudecode"   # "claudecode", "codex", "cursor", "gemini", "qoder", "opencode", or "iflow"
-
-[projects.agent.options]
-work_dir = "/path/to/your/project"
-mode = "default"
-# model = "claude-sonnet-4-20250514"
-
-# --- Choose at least one platform below ---
-
-# Feishu / Lark (WebSocket, no public IP needed)
-[[projects.platforms]]
-type = "feishu"
-
-[projects.platforms.options]
-app_id = "your-feishu-app-id"
-app_secret = "your-feishu-app-secret"
-
-# For more platforms (DingTalk, Telegram, Slack, Discord, LINE, WeChat Work)
-# see: https://github.com/ItsQifan/cf-connect/blob/main/config.example.toml
-`
-	return os.WriteFile(path, []byte(tmpl), 0o644)
+	return os.WriteFile(path, []byte(ccconnect.ConfigExampleTOML), 0o644)
 }
 
 func printUsage() {

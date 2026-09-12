@@ -44,12 +44,17 @@ type DoctorChecker interface {
 	DoctorChecks(ctx context.Context) []DoctorCheckResult
 }
 
-// AgentDoctorInfo is an optional interface agents can implement to provide
-// CLI binary name and display label for doctor checks, avoiding hardcoded
-// agent-specific knowledge in core.
+// AgentDoctorInfo is an optional interface agents can implement to provide the
+// CLI binary name and its human-readable label. It keeps hardcoded
+// agent-specific knowledge out of core, and lets one adapter report the brand of
+// the CLI it actually drives (the opencode adapter runs both opencode and the
+// codefree-o rebrand).
+//
+// CLIDisplayName is not doctor-only: AgentDisplayName uses it for every
+// user-facing label, so it must be a name a user should see in chat.
 type AgentDoctorInfo interface {
-	CLIBinaryName() string  // e.g. "claude", "codex"
-	CLIDisplayName() string // e.g. "Claude", "Codex" (for display in doctor output)
+	CLIBinaryName() string  // e.g. "codefree-o" (used to locate and inspect the binary)
+	CLIDisplayName() string // e.g. "CodeFree-O" (shown in doctor output and chat titles)
 }
 
 // PlatformHealthInfo is a per-platform health snapshot reported by

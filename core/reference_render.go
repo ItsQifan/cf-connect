@@ -56,8 +56,13 @@ func normalizeReferenceRenderCfg(cfg ReferenceRenderCfg) ReferenceRenderCfg {
 	return n
 }
 
-var supportedReferenceNormalizeAgents = []string{"codex", "claudecode"}
-var supportedReferenceRenderPlatforms = []string{"feishu", "weixin"}
+// These lists previously named upstream adapters (codex/claudecode,
+// feishu/weixin) that this fork no longer compiles in. Because "all" expands to
+// the supported set, that made [projects.references] permanently inert: the
+// runtime agent is "opencode" and the platform is "dingtalk", neither of which
+// could ever match. Keep them in sync with config.supportedReference*.
+var supportedReferenceNormalizeAgents = []string{"opencode"}
+var supportedReferenceRenderPlatforms = []string{"dingtalk"}
 
 func normalizeReferenceScope(values []string, supported []string) []string {
 	if len(values) == 0 {

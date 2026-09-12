@@ -608,6 +608,56 @@ type LogConfig struct {
 	Level string `toml:"level"`
 }
 
+// platformOwnedProjectKeys lists keys that users reasonably expect to work at
+// the [[projects]] level but which are actually per-platform options, read out
+// of [projects.platforms.options] by the platform adapter.
+//
+// BurntSushi/toml ignores unknown keys, and ProjectConfig has no field for
+// these, so a misplaced key is dropped without an error. For `allow_from` that
+// is a security hole rather than a typo: the user believes the bot is locked to
+// their own account while every user in the organisation is still accepted.
+var platformOwnedProjectKeys = []string{"allow_from"}
+
+// misplacedKeyWarning reports keys found at the [[projects]] level that are
+// actually platform options. It is separated from warnMisplacedKeys so it can be
+// unit-tested without capturing logs.
+func misplacedKeyWarning(data []byte) []string {
+	var raw struct {
+		Projects []map[string]any `toml:"projects"`
+	}
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		// The caller already reported the parse error.
+		return nil
+	}
+
+	var warnings []string
+	for i, proj := range raw.Projects {
+		name, _ := proj["name"].(string)
+		label := name
+		if label == "" {
+			label = fmt.Sprintf("#%d", i)
+		}
+		for _, key := range platformOwnedProjectKeys {
+			if _, ok := proj[key]; !ok {
+				continue
+			}
+			warnings = append(warnings, fmt.Sprintf(
+				"project %q sets %s at the [[projects]] level, where it is silently "+
+					"ignored; it is a per-platform option — move it under "+
+					"[projects.platforms.options] or the bot will accept every user",
+				label, key))
+		}
+	}
+	return warnings
+}
+
+// warnMisplacedKeys logs misplaced but silently-dropped config keys at startup.
+func warnMisplacedKeys(data []byte) {
+	for _, w := range misplacedKeyWarning(data) {
+		slog.Warn("config: " + w)
+	}
+}
+
 // load parses, env-resolves, and wires providers in the config file but does
 // NOT validate — callers must call validate() or validatePermissive() themselves.
 func load(path string) (*Config, error) {
@@ -619,6 +669,7 @@ func load(path string) (*Config, error) {
 	if err := toml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
+	warnMisplacedKeys(data)
 	resolveEnvInConfig(cfg)
 	if cfg.DataDir == "" {
 		if home, err := os.UserHomeDir(); err == nil {
@@ -1089,16 +1140,20 @@ func validateDisplayConfig(prefix string, display *DisplayConfig) error {
 	return nil
 }
 
+// supportedReferenceAgents / supportedReferencePlatforms gate the opt-in
+// [projects.references] renderer. They must name adapters this fork actually
+// compiles in: the upstream values (codex/claudecode, feishu/weixin) were left
+// behind by the trim, which made the feature both unconfigurable (any real value
+// was rejected at validation) and permanently inert ("all" expanded to agents
+// and platforms that no longer exist, so renderEnabled never matched).
 var supportedReferenceAgents = map[string]struct{}{
-	"all":        {},
-	"codex":      {},
-	"claudecode": {},
+	"all":      {},
+	"opencode": {},
 }
 
 var supportedReferencePlatforms = map[string]struct{}{
-	"all":    {},
-	"feishu": {},
-	"weixin": {},
+	"all":      {},
+	"dingtalk": {},
 }
 
 var supportedReferenceDisplayPaths = map[string]struct{}{
