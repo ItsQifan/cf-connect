@@ -37,14 +37,34 @@ if (-not (Test-Path -LiteralPath $exe)) {
     Write-Warning "cf-connect.exe not found in $target - run this script from the unpacked archive directory."
 }
 
+# Read and write HKCU\Environment directly instead of going through
+# [Environment]::SetEnvironmentVariable. The .NET setter always writes REG_SZ,
+# so it silently downgrades a REG_EXPAND_SZ PATH and any %USERPROFILE%-style
+# entry in it stops expanding - i.e. it can break the user's PATH. Preserving
+# the stored value kind avoids that entirely.
+$envKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
+if (-not $envKey) {
+    throw 'Cannot open HKCU\Environment for reading. User PATH was not changed.'
+}
+
 function Get-UserPath {
-    $value = [Environment]::GetEnvironmentVariable('PATH', 'User')
+    if (-not $envKey) { return @() }
+    $value = [string]$envKey.GetValue('PATH', '', 'DoNotExpandEnvironmentNames')
     if ([string]::IsNullOrWhiteSpace($value)) { return @() }
     return @($value -split ';' | Where-Object { $_ -ne '' })
 }
 
 function Set-UserPath([string[]]$entries) {
-    [Environment]::SetEnvironmentVariable('PATH', ($entries -join ';'), 'User')
+    if (-not $envKey) {
+        throw 'Cannot open HKCU\Environment for writing.'
+    }
+    # Default to ExpandString when the value does not exist yet; that is the
+    # kind Windows itself uses for the user PATH.
+    $kind = [Microsoft.Win32.RegistryValueKind]::ExpandString
+    if ($envKey.GetValueNames() -contains 'PATH') {
+        $kind = $envKey.GetValueKind('PATH')
+    }
+    $envKey.SetValue('PATH', ($entries -join ';'), $kind)
 }
 
 $current = Get-UserPath

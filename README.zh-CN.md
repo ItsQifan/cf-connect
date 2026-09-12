@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="./README.md">English</a> | <a href="./README.zh-CN.md">中文</a>
+  主文档：[README.md](./README.md)
 </p>
 
 ---
@@ -41,8 +41,9 @@
 | 同事（使用者） | ① 解压 zip ② 自己的钉钉应用凭证 ③ 已安装并登录的 CodeFree-O ④ 填 `config.toml` | **Go、Node、Python、Java、npm 全都不需要** |
 | 构建者 | Go 1.25+、Node + pnpm（仅用于构建发行包） | — |
 
-每人一套钉钉凭证、各自登录模型，互不影响。建议设 `allow_from = "自己的 userid"`
-（钉钉里发 `/whoami` 可查），避免他人误用你的额度。
+每人一套钉钉凭证、各自登录模型，互不影响。建议在 **`[projects.platforms.options]` 段下**
+设 `allow_from = "自己的 userid"`（钉钉里发 `/whoami` 可查），避免他人误用你的额度。
+⚠️ 写到 `[[projects]]` 下会被 TOML 解码器静默丢弃，等于对所有人开放。
 
 ## 支持范围
 

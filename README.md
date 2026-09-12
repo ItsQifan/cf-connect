@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="./docs/images/banner.svg" alt="CF-Connect Banner" width="800"/>
+  <img src="https://raw.githubusercontent.com/ItsQifan/cf-connect/main/docs/images/banner.svg" alt="CF-Connect Banner" width="800"/>
 </p>
 
 <p align="center">
   把 <b>CodeFree-O</b> 从"必须坐在电脑前用"变成"<b>在钉钉里随时用</b>"。
 </p>
 
-<p align="center">
-  <a href="./README.md">English</a> | <a href="./README.zh-CN.md">中文</a>
-</p>
+> 本文件与 [QUICKSTART.md](./QUICKSTART.md) 一起随发行的 zip 分发。
+> zip 里**只有** `cf-connect.exe`、`config.example.toml`、`install.ps1`、
+> `QUICKSTART.md` 和本文件；下方"文档"表里指向仓库的链接需要联网访问。
 
 ---
 
@@ -42,8 +42,8 @@ CF-Connect 是一个 **IM 通道网关**：把钉钉消息转成对本地 CodeFr
 | | |
 |---|---|
 | **零公网 IP** | 走钉钉 Stream 长连接，不需要域名、不需要配回调地址 |
-| **过程可见** | 思考块、工具调用、结果实时流式回显到钉钉 |
-| **权限可控** | `default`（逐次确认）/ `yolo`（全自动）可配 |
+| **过程可见** | 配了 AI 卡片模板后，思考块、工具调用、结果会实时流式回显到钉钉；不配则整轮跑完一次性发出（通常十几秒） |
+| **权限可配** | `mode` 只决定是否追加"跳过权限"的 flag：`yolo` 追加（默认 `--auto`），`default` 不追加。⚠️ 两者都**不是**工具调用安全门——cf-connect 没有交互式确认，无头调用会直接执行工具，详见 [QUICKSTART.md](./QUICKSTART.md) |
 | **可复制** | 一个 zip 解压即用 + 一份配置模板 |
 | **可审计** | 会话历史、管理 API、定时任务 |
 | **零运行时依赖** | Go 静态编译 + Web 管理界面已内嵌，不需要 Go/Node/Python/Java |
@@ -81,7 +81,9 @@ notepad config.toml     # 填 work_dir、cmd 和钉钉凭证
 | 同事（使用者） | ① 解压 zip ② 自己的钉钉应用凭证 ③ 已安装并登录的 CodeFree-O ④ 填 `config.toml` | **Go、Node、Python、Java、npm 全都不需要** |
 | 构建者 | Go 1.25+、Node + pnpm（仅用于构建发行包） | — |
 
-每人一套钉钉凭证、各自登录模型，互不影响。建议在配置里设 `allow_from = "自己的 userid"`（钉钉里发 `/whoami` 可查），避免他人误用你的额度。
+每人一套钉钉凭证、各自登录模型，互不影响。建议在 **`[projects.platforms.options]` 段下**
+设 `allow_from = "自己的 userid"`（钉钉里发 `/whoami` 可查），避免他人误用你的额度。
+⚠️ 写到 `[[projects]]` 下不是"不生效"，而是会被 TOML 解码器静默丢弃，等于对所有人开放。
 
 ---
 
@@ -105,7 +107,11 @@ notepad config.toml     # 填 work_dir、cmd 和钉钉凭证
 | 会话标题/消息数固定读 `~/.local/share/opencode/opencode.db` | 按二进制名识别品牌，读 `~/.codefree-o/.local/share/codefree.db` |
 | 读数据库依赖外部 `sqlite3` 命令（多数机器没有） | 改为**进程内纯 Go sqlite**，开箱可用 |
 | 全局记忆文件固定 `~/.opencode/OPENCODE.md` | 按品牌探测 `~/.codefree-o/.config/{OPENCODE,AGENTS}.md` |
-| `doctor` 写死 CLI 名 | 实现 `AgentDoctorInfo`，显示真实 CLI |
+| 诊断信息写死 CLI 名 | 实现 `AgentDoctorInfo`，报告真实 CLI（`codefree-o` / `opencode`） |
+
+> 注：`cf-connect doctor` **不是**可用的自检命令——Windows 上它只打印
+> `doctor command is not supported on Windows`。上表说的是 `AgentDoctorInfo`
+> 提供的 CLI 元数据。判断是否装好请看启动日志。
 
 ---
 
@@ -144,18 +150,18 @@ go build -tags 'no_web' ./cmd/cf-connect        # 不带 Web 管理界面
 
 | 文档 | 内容 |
 |---|---|
-| [QUICKSTART.md](./QUICKSTART.md) | 3 步上手 + 排障（**随 zip 分发**） |
-| [INSTALL.md](./INSTALL.md) | 安装与部署细节 |
-| [docs/dingtalk.md](./docs/dingtalk.md) | 钉钉适配器（卡片、媒体、引用） |
-| [docs/usage.md](./docs/usage.md) | 钉钉里的命令用法 |
-| [docs/management-api.md](./docs/management-api.md) | 管理 API |
-| [docs/bridge-protocol.md](./docs/bridge-protocol.md) | Bridge 协议 |
+| [QUICKSTART.md](./QUICKSTART.md) | 3 步上手 + 排障（**随 zip 分发，离线可读**） |
+| [INSTALL.md](https://github.com/ItsQifan/cf-connect/blob/main/INSTALL.md) | 安装与部署细节 |
+| [docs/dingtalk.md](https://github.com/ItsQifan/cf-connect/blob/main/docs/dingtalk.md) | 钉钉适配器（卡片、媒体、引用） |
+| [docs/usage.md](https://github.com/ItsQifan/cf-connect/blob/main/docs/usage.md) | 钉钉里的命令用法 |
+| [docs/management-api.md](https://github.com/ItsQifan/cf-connect/blob/main/docs/management-api.md) | 管理 API |
+| [docs/bridge-protocol.md](https://github.com/ItsQifan/cf-connect/blob/main/docs/bridge-protocol.md) | Bridge 协议 |
 
 ---
 
 ## 开发
 
-见 [AGENTS.md](./AGENTS.md)（架构约定、测试要求、如何新增平台/agent）。
+见 [AGENTS.md](https://github.com/ItsQifan/cf-connect/blob/main/AGENTS.md)（架构约定、测试要求、如何新增平台/agent）。
 
 ```bash
 go build ./...                  # 构建
