@@ -27,7 +27,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKIP_DIRS = {".git", "node_modules", "dist", ".tmp-tools", "changelogs", "npm", "vendor", ".vite"}
 
 # Files whose subject IS the trim record; they have to be able to quote it.
-RECORD_FILES = {"ACCEPTANCE.md", "BASELINE-TESTS.md", "RELEASE.md"}
+RECORD_FILES = {"ACCEPTANCE.md", "BASELINE-TESTS.md", "RELEASE.md", "HANDOFF.md"}
 
 OLD = re.compile(r"[Cc][Cc]-[Cc][Oo][Nn][Nn][Ee][Cc][Tt]")
 # A protected occurrence has an underscore (or other identifier char) right
