@@ -91,6 +91,10 @@ notepad config.toml
 ```toml
 [[projects]]
 name = "my-project"
+# 授权特权命令（/dir、/shell、/show、/diff、/web、/restart、/upgrade）：
+# 注意它写在 [[projects]] 下，位置与下方的 allow_from 正好相反。
+# 不填 = 特权命令对所有人一律拒绝，钉钉里会回 "requires admin privilege"。
+# admin_from = "你的 userid"
 
 [projects.agent]
 type = "opencode"
@@ -189,6 +193,7 @@ level=INFO msg="cf-connect is running" projects=1
 | 会话列表是空的 | 该 `work_dir` 下还没跑过会话，先在钉钉里让机器人干点活 |
 | 回复要等很久，且日志有 `streaming card creation failed` | 正常：没配 `card_template_id`，只能等整轮结束。配了卡片模板才有流式 |
 | 日志出现 `allow_from is not set — all users are permitted` | 你把它写在 `[[projects]]` 下了。挪到 `[projects.platforms.options]` |
+| 发 `/dir`（或 `/shell`、`/show`）回 `requires admin privilege` | 没配 `admin_from`。它和 `allow_from` 位置**相反**：要写在 **`[[projects]]`** 段下（不是 `[projects.platforms.options]`），改完重启 |
 | `yolo` 模式报 unknown flag | 你的 CLI 版本不认 `--auto`。在配置里设 `permission_flag = "--dangerously-skip-permissions"`（老版 opencode），或 `"none"` |
 | 别人也能用我的机器人 | 在 **`[projects.platforms.options]`** 下填 `allow_from = "你的userid"`（`/whoami` 可查） |
 | 机器人不询问就改了文件 | 预期行为。cf-connect 没有交互式权限确认，`mode = "default"` 也不拦；要管控请配 CLI 自己的权限或上沙箱 |
@@ -206,14 +211,19 @@ level=INFO msg="cf-connect is running" projects=1
 
 | 命令 | 作用 |
 |---|---|
-| `/whoami` | 查看自己的 userid（用来配 `allow_from`） |
+| `/whoami` | 查看自己的 userid（用来配 `allow_from` / `admin_from`） |
 | `/new` | 开一个新会话 |
 | `/list` | 列出会话 |
 | `/switch <id>` | 切到某个会话 |
 | `/history` | 看当前会话历史 |
 | `/model` | 查看/切换模型 |
+| `/dir [路径]` | 查看/切换 agent 工作目录（**特权命令**，需 `admin_from`） |
 | `/stop` | 打断当前这一轮 |
 | `/help` | 全部命令 |
+
+> `/dir`、`/shell`、`/show`、`/diff`、`/web`、`/restart`、`/upgrade` 都是**特权命令**，
+> 必须先在 `config.toml` 的 **`[[projects]]`** 段下配好 `admin_from`，
+> 否则一律被拒绝（钉钉里回 `requires admin privilege`）。
 
 ---
 

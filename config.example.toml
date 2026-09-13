@@ -145,7 +145,14 @@ enabled = false
 [[projects]]
 name = "my-project"
 
-# Optional: who may run admin commands (defaults to allow_from).
+# Optional: who may run privileged commands — /dir, /shell, /show, /diff,
+# /web, /restart, /upgrade.
+#
+# Leaving it unset does NOT inherit the platform-level allowlist from the
+# DingTalk block below. An empty value denies those commands to EVERYONE
+# (fail-closed) and logs a warning on every start. Set a comma-separated list
+# of user IDs, or "*" to admit every user the platform already permits.
+#
 # This one IS project-level. `allow_from` is NOT — it belongs to each platform;
 # see the DingTalk block further down.
 # admin_from = "your-dingtalk-userid"

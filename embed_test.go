@@ -140,6 +140,48 @@ func TestConfigExampleTOML_AllowFromIsPlatformLevel(t *testing.T) {
 	}
 }
 
+// TestConfigExampleTOML_AdminFromIsProjectLevel is the regression test for a
+// false statement in the shipped template.
+//
+// The template used to say admin_from "defaults to allow_from". It does not:
+// main.go hands proj.AdminFrom straight to Engine.SetAdminFrom, and isAdmin
+// treats an empty allowlist as deny-all (core/engine.go). A user who trusted
+// that comment therefore had every privileged command refused while believing
+// the allowlist covered them. Pin both halves — the level the key belongs to,
+// and the absence of the bogus default.
+func TestConfigExampleTOML_AdminFromIsProjectLevel(t *testing.T) {
+	section := ""
+	adminFromSections := map[string]int{}
+
+	for _, line := range strings.Split(ConfigExampleTOML, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "[") {
+			section = trimmed
+			continue
+		}
+		key := strings.TrimSpace(strings.TrimPrefix(trimmed, "#"))
+		if strings.HasPrefix(key, "admin_from") {
+			adminFromSections[section]++
+		}
+	}
+
+	if adminFromSections["[[projects]]"] == 0 {
+		t.Errorf("config.example.toml does not document admin_from under "+
+			"[[projects]]; occurrences by section: %v", adminFromSections)
+	}
+	if n := adminFromSections["[projects.platforms.options]"]; n != 0 {
+		t.Errorf("config.example.toml documents admin_from under "+
+			"[projects.platforms.options] (%d occurrence(s)); it is a "+
+			"project-level key, the exact opposite of allow_from", n)
+	}
+
+	if strings.Contains(ConfigExampleTOML, "defaults to allow_from") {
+		t.Error("config.example.toml claims admin_from defaults to allow_from; " +
+			"an unset admin_from is fail-closed (denies every privileged " +
+			"command), not an allow_from fallback")
+	}
+}
+
 // TestConfigExampleTOML_DoesNotAdvertiseDeadDingTalkSwitches guards the other
 // half of the DingTalk smoke-test findings: `card_mode` is an upstream Feishu
 // Card 2.0 switch and `[stream_preview]` needs a platform MessageUpdater, which
