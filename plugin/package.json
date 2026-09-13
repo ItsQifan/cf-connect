@@ -1,0 +1,28 @@
+{
+  "name": "cf-connect-dingtalk",
+  "displayName": "CF-Connect 钉钉桥接",
+  "version": "0.1.0",
+  "description": "Bridge between DingTalk and a local CodeFree (codefree-o) CLI, driven by the cf-connect gateway.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    ".codefree-plugin/",
+    "index.js",
+    "skills/",
+    "commands/",
+    "config.example.toml",
+    "config.full.example.toml",
+    "install.ps1",
+    "bin/",
+    "README.md"
+  ],
+  "scripts": {
+    "pack": "node scripts/pack.mjs",
+    "verify": "node scripts/verify-pack.mjs",
+    "install:local": "node scripts/install-local.mjs"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "name": "cf-connect-dingtalk",
+  "displayName": "CF-Connect 钉钉桥接",
+  "summary": "在钉钉里远程驱动 CodeFree（codefree-o）：随时派活、看过程、收结果",
+  "version": "0.1.0",
+  "description": "在钉钉里远程驱动 CodeFree（codefree-o）：随时派活、看过程、收结果。绑定本机 cf-connect 网关后，钉钉消息会变成 codefree-o 的一次运行，流式结果与完成通知回推到同一个钉钉会话。",
+  "license": "MIT",
+  "homepage": "https://github.com/ItsQifan/cf-connect",
+  "keywords": [
+    "codefree",
+    "dingtalk",
+    "cf-connect",
+    "agent",
+    "bridge"
+  ],
+  "agentCompatibility": [
+    "codefree"
+  ],
+  "skills": [
+    "skills"
+  ],
+  "commands": [
+    "commands"
+  ],
+  "agents": [],
+  "mcpServers": {}
+}

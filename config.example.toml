@@ -1,323 +1,140 @@
 # =============================================================================
-# CF-Connect configuration example
+# CF-Connect 配置示例  (v0.1.0)
 # =============================================================================
+# 三步上手：
+#   1. copy config.example.toml config.toml
+#   2. 填下面 4 个地方：work_dir、cmd、client_id、client_secret
+#   3. cf-connect.exe            （前台跑，看到日志即成功）
+#      cf-connect.exe daemon install && cf-connect.exe daemon start   （常驻）
 #
-# CF-Connect bridges DingTalk to a local CodeFree-O (or OpenCode) CLI process:
-# a DingTalk message becomes an agent run, and the streamed result is pushed
-# back into the same DingTalk conversation.
-#
-#   cf-connect config example > config.toml      # save this file
-#   cf-connect                                   # start (foreground)
-#   cf-connect daemon install                    # run as a background service
-#
-# Everything below is optional except [[projects]] and its agent/platform
-# blocks. Copy the parts you need; unknown keys are ignored.
-#
-# String values support ${VAR_NAME} environment variable substitution, e.g.
-#   client_secret = "${DINGTALK_APP_SECRET}"
-#
-# Prerequisite: the agent CLI must be on PATH, or given as an absolute path in
-# `cmd` below. Daemons do not inherit your shell PATH, so an absolute path (or
-# a PATH set at the service level) is strongly recommended.
+# 说明：除了 [[projects]] 和它的 agent / platforms 两块，其余都是可选项；
+#       不需要的整段删掉或注释掉都不影响启动。
 # =============================================================================
 
-
 # -----------------------------------------------------------------------------
-# Runtime data directory
-# -----------------------------------------------------------------------------
-# Where session history, project state, the management/web token and cron data
-# live. Created on first start.
-#
-# Default: ~/.cf-connect
-# data_dir = "/home/you/.cf-connect"
-
-
-# -----------------------------------------------------------------------------
-# Logging
+# 日志
 # -----------------------------------------------------------------------------
 [log]
 level = "info" # debug | info | warn | error
 
-# When run as a daemon (CC_LOG_FILE is set by the service manager) the log is
-# rotated automatically. The two limits below can also be set per start with
-# --log-max-size / --log-max-backups.
-# max_size = "10MB"   # accepts 10MB, 512K, 10485760 ...
-# max_backups = 3
+
+# -----------------------------------------------------------------------------
+# 语言
+# -----------------------------------------------------------------------------
+# 机器人回复的 UI 语言：en | zh
+# 不设置则根据收到的消息自动检测，或设置为 "auto"。
+language = "zh"
 
 
 # -----------------------------------------------------------------------------
-# Language
-# -----------------------------------------------------------------------------
-# UI language for bot replies: en | zh | zh-TW | ja | es
-# Leave unset to auto-detect from the incoming message, or set "auto".
-# language = "zh"
-
-
-# -----------------------------------------------------------------------------
-# Shell
-# -----------------------------------------------------------------------------
-# Shell used by /shell, cron exec, hooks and webhook exec.
-# Default: "sh" on Unix, "powershell.exe" on Windows.
-# Supported: sh, bash, zsh, fish, cmd, powershell, pwsh
-# shell = "/bin/zsh"
-
-# Prepended to every shell command (useful to source a profile).
-# shell_profile = "source ~/.zshrc"
-
-
-# -----------------------------------------------------------------------------
-# Attachments
-# -----------------------------------------------------------------------------
-# "on" (default) allows the agent to push images/files back to the chat;
-# "off" disables all outgoing attachments.
-# attachment_send = "on"
-
-# Reject incoming attachments larger than this in MB (default 20).
-# max_attachment_size_mb = 20
-
-
-# -----------------------------------------------------------------------------
-# Response rendering
+# 回复渲染
 # -----------------------------------------------------------------------------
 [display]
 mode = "full"              # full | compact | quiet
-thinking_messages = true   # show the model's thinking blocks
-tool_messages = true       # show tool calls and results
-# thinking_max_len = 500
-# tool_max_len = 1000
+thinking_messages = true   # 显示模型的思考块
+tool_messages = true       # 显示工具调用和结果
 
-# NOTE: two upstream blocks are deliberately absent here because they do
-# nothing for DingTalk:
-#
-#   card_mode = "rich"   — switches on Feishu Card 2.0 rich cards. DingTalk's
-#                          AI Card streaming is selected by `card_template_id`
-#                          below, not by this flag.
-#   [stream_preview]     — needs a platform MessageUpdater, which the DingTalk
-#                          adapter does not implement, so it is silently
-#                          ignored ("progress writer disabled: unsupported
-#                          style ... style=legacy" in a debug log).
-#
-# See docs/DINGTALK-E2E.md (finding F5).
-
-# Immediate "received, working on it" acknowledgement.
 [instant_reply]
 enabled = false
-# text = "🤔 Thinking..."
-
-
-# -----------------------------------------------------------------------------
-# Concurrency and safety limits
-# -----------------------------------------------------------------------------
-# Per-session message rate limiting.
-[rate_limit]
-enabled = false
-# max_per_minute = 20
-# burst = 5
-
-# Outgoing message throttling (protects against platform rate limits).
-[outgoing_rate_limit]
-enabled = false
-# max_per_second = 5
-# burst = 10
-
-# Cap on how long a single agent turn may run, in minutes (0 = no cap).
-# max_turn_time_mins = 30
-
-# Cap on how long to wait between two agent events before declaring the turn
-# stuck, in minutes (default 120; 0 disables).
-# idle_timeout_mins = 120
-
-# How many messages may queue behind a busy session (default 5).
-[queue]
-# max_depth = 5
-
-# Auto-reset a conversation after this many minutes of inactivity.
-# reset_on_idle_mins = 120
+# text = "🤔 思考中..."
 
 
 # =============================================================================
-# PROJECTS
+# 项目
 # =============================================================================
-# A project binds one agent (with its work_dir) to one or more platforms.
-# Most deployments need exactly one.
+# 一个项目将一个 agent（及其 work_dir）绑定到一个或多个平台。
+# 大多数部署只需要一个。
 # =============================================================================
 
 [[projects]]
 name = "my-project"
 
-# Optional: who may run privileged commands — /dir, /shell, /show, /diff,
-# /web, /restart, /upgrade.
-#
-# Leaving it unset does NOT inherit the platform-level allowlist from the
-# DingTalk block below. An empty value denies those commands to EVERYONE
-# (fail-closed) and logs a warning on every start. Set a comma-separated list
-# of user IDs, or "*" to admit every user the platform already permits.
-#
-# This one IS project-level. `allow_from` is NOT — it belongs to each platform;
-# see the DingTalk block further down.
-# admin_from = "your-dingtalk-userid"
+# 可选：谁可以运行管理命令（/dir、/shell、/show、/diff、/web、/restart）。
+# 留空 = 所有人都不能运行（fail-closed），不是"继承 allow_from"。
+# admin_from = "你的钉钉userId"
 
-# --- Agent: CodeFree-O / OpenCode -------------------------------------------
+# --- Agent：CodeFree-O / OpenCode -------------------------------------------
 [projects.agent]
-# "opencode" and "codefree-o" select the same adapter; pick whichever matches
-# the CLI you installed.
+# "opencode" 和 "codefree-o" 选择同一个适配器；选择与你安装的 CLI 匹配的即可。
 type = "opencode"
 
 [projects.agent.options]
-# Where the agent reads and writes code. Pick the directory you actually want
-# it to work in. Sessions started here remember their own agent session ID.
-work_dir = "E:\\work\\my-project"
+# agent 读取和写入代码的位置。选择你实际希望它工作的目录。
+# 在此启动的会话会记住自己的 agent 会话 ID。
+work_dir = "D:\\workspace_idea"
 
-# The CLI to drive. Either a bare name resolved through PATH, or an absolute
-# path (recommended for daemon deployments).
-#
+# 要驱动的 CLI。可以写 PATH 里的名字，也可以写绝对路径（常驻服务推荐绝对路径，
+# 因为服务进程不会继承你终端里的 PATH）。
 #   cmd = "codefree-o"
 #   cmd = ["C:\\nvm4w\\nodejs\\node_modules\\@srdcloud\\codefree-o\\bin\\codefree-o.exe"]
-#
-# You may append extra CLI arguments after the binary name; they are passed
-# through unchanged:
-#   cmd = ["codefree-o", "--log-level", "warn"]
 cmd = "codefree-o"
 
-# Permission mode. This only decides whether a "skip permission" flag is
-# appended to the CLI command line. It does NOT create an allow/deny prompt in
-# the chat — cf-connect has no interactive permission confirmation at all (the
-# agent adapter's RespondPermission is a no-op, so nothing is ever sent to
-# DingTalk for you to approve).
-#   "default" - append nothing. The CLI's own rules decide, and a headless
-#               `run` invocation executes tools WITHOUT asking. Treat this as
-#               "no gate", not as "safe".
-#   "yolo"    - append permission_flag (below), e.g. --auto
-#
-# For real tool gating, configure permissions in the CLI itself, or run the
-# agent inside a sandbox/container. See docs/DINGTALK-E2E.md (finding F2).
+# 权限模式。这只决定是否在 CLI 命令行后附加"跳过权限"标志。
+#   default = 不追加任何标志，由 CLI 自己的规则决定
+#   yolo    = 追加下面的 permission_flag（默认 --auto）
+# 注意：cf-connect 没有交互式权限确认，default 也不等于"安全模式"。
 mode = "default"
 
-# Which flag "yolo" mode appends. Defaults to "--auto", which both current
-# OpenCode (>= 1.18) and CodeFree-O understand. Older OpenCode builds used
-# "--dangerously-skip-permissions"; set that here if you run one of those, or
-# "none" to append nothing at all.
+# model = "codefree/GLM-5.2"   # `codefree-o models` 查看可用模型
+# agent = "build"              # 传给 CLI 的 --agent（build | plan）
+
+# --- 高级（一般不用改，需要时取消注释） --------------------------------------
+# yolo 模式追加的标志。当前 OpenCode(>=1.18) 与 CodeFree-O 都支持 --auto；
+# 老版本 OpenCode 可写 --dangerously-skip-permissions，写 "none" 表示不追加。
 # permission_flag = "--auto"
 
-# Model as "provider/model". Run `codefree-o models` to list what your account
-# can use; leave unset to use the CLI's own default.
-# model = "codefree/GLM-5.2"
-
-# Pass --agent <name> to the CLI (selects an agent profile defined by the CLI).
-# agent = "build"
-
-# Session database location. CF-Connect reads session titles and message counts
-# from the CLI's local sqlite database, in-process (no sqlite3 CLI needed).
-# It is detected automatically from the binary name:
+# 会话库位置。cf-connect 直接从 CLI 的本地 sqlite 读会话标题与消息数
+# （进程内读取，不需要 sqlite3 命令）。按二进制名自动识别：
 #   opencode   -> ~/.local/share/opencode/opencode.db
 #   codefree-o -> ~/.codefree-o/.local/share/codefree.db
-# Override only if your install keeps its data somewhere else.
 # data_dir = "C:\\Users\\you\\.codefree-o\\.local\\share"
 # db_file = "codefree.db"
 
-# Global instruction file. Auto-detected for codefree-o
-# (~/.codefree-o/.config/OPENCODE.md, then AGENTS.md); falls back to
-# ~/.opencode/OPENCODE.md. Override if you keep it elsewhere.
+# 全局记忆文件。codefree-o 自动识别 ~/.codefree-o/.config/OPENCODE.md，
+# 其次是 AGENTS.md；都没有则回退 ~/.opencode/OPENCODE.md。
 # global_memory_file = "C:\\Users\\you\\.codefree-o\\.config\\OPENCODE.md"
 
-# Extra environment variables for the agent process.
+# 给 agent 进程追加环境变量。
 # [projects.agent.options.env]
 # HTTPS_PROXY = "http://127.0.0.1:7890"
 
-# --- Platform: DingTalk ------------------------------------------------------
+
+# --- 平台：钉钉 --------------------------------------------------------------
 [[projects.platforms]]
 type = "dingtalk"
 
 [projects.platforms.options]
-# From your DingTalk 企业内部应用 (see QUICKSTART.md). Each person runs their
-# own application, so these are per-machine credentials.
-client_id = "your-app-key"
-client_secret = "your-app-secret"
+# 来自你的钉钉企业内部应用（参见 QUICKSTART.md）。每个人运行自己的应用，
+# 因此这些是每台机器的凭据。
+client_id = "client_id"
+client_secret = "client_secret"
 
-# Optional but strongly recommended: restrict who can talk to the bot
-# (comma-separated DingTalk user IDs; "*" allows everyone). Send /whoami in
-# DingTalk to discover your own ID, then put it here.
-#
-# IMPORTANT: this key MUST live under [projects.platforms.options]. A
-# project-level `allow_from` is not a config field at all — the TOML decoder
-# drops it silently, with no error and no warning, and the bot then accepts
-# everyone.
-# allow_from = "your-dingtalk-userid"
+# 可选但强烈推荐：限制谁可以与机器人对话
+# （逗号分隔的钉钉用户 ID；"*" 允许所有人）。在钉钉中发送 /whoami
+# 可以发现自己的 ID，然后填入此处。
+# 注意：这个键必须放在 [projects.platforms.options] 下；写在 [[projects]]
+# 里会被 TOML 解码器静默丢弃，机器人就会对所有人开放。
+# allow_from = "你的钉钉userId"
 
-# Optional: the robot code, if it differs from client_id.
-# robot_code = "your-robot-code"
-
-# Optional: show one shared session for everyone in a group chat instead of a
-# private session per member.
-# share_session_in_channel = false
-
-# Optional: AI Card streaming. This is the ONLY streaming path for DingTalk —
-# without it, replies arrive as one plain markdown message after the whole turn
-# finishes (tens of seconds), and every turn logs a fallback warning.
-# To enable: 钉钉开放平台 → 卡片平台 → 新建「AI 卡片」模板, put a Markdown
-# component in it bound to a variable named `content`, publish, then paste the
-# template ID (…​.schema) here.
+# 可选：AI 卡片流式输出。这是钉钉唯一的流式路径 ——
+# 不启用它，回复会在整个回合结束后作为一条纯 markdown 消息到达。
+# 启用方法：钉钉开放平台 → 卡片平台 → 新建「AI 卡片」模板，在其中放置一个
+# 绑定到变量 `content` 的 Markdown 组件并发布，然后粘贴模板 ID 到此处。
 # card_template_id = "your-card-template-id"
-# card_template_key = "content"
-# card_throttle_ms = 300
-
-# Optional: emoji reactions instead of (or in addition to) text acks.
-# reaction_emoji = "🤔"
-# done_emoji = "✅"
 
 
 # =============================================================================
-# OPTIONAL GLOBAL FEATURES
+# 可选的全局功能（按需取消注释）
 # =============================================================================
-
-# --- Custom slash commands ---------------------------------------------------
-# Available in every project; expand to a prompt or run a shell command.
-# name/description are shown by /help.
-# [[commands]]
+# [[commands]]                   # 自定义斜杠命令
 # name = "review"
-# description = "Review the current diff"
-# prompt = "Review the staged git diff and list concrete problems."
-# work_dir = "E:\\work\\my-project"
+# description = "评审当前改动"
+# prompt = "评审暂存的 git diff，列出具体问题。"
 
-# --- Command aliases ---------------------------------------------------------
-# [[aliases]]
-# name = "n"
-# command = "new"
-
-# --- Blocked words -----------------------------------------------------------
-# Messages containing any of these words are refused.
-# banned_words = ["password", "secret"]
-
-# --- Scheduled tasks ---------------------------------------------------------
-[cron]
+# [cron]                         # 定时任务
 # enabled = true
 # timezone = "Asia/Shanghai"
 
-# --- Web admin UI ------------------------------------------------------------
-# The admin UI is embedded in the binary; no Node.js runtime is required.
-[management]
+# [management]                   # 内嵌 Web 管理界面（无需 Node）
 # enabled = true
 # port = 9111
-# token = "set-a-long-random-token"   # generated on first start if omitted
-# cors_origins = ["http://localhost:5173"]
-
-# --- Bridge protocol (for external integrations) -----------------------------
-[bridge]
-# enabled = false
-# port = 9810
-# token = "shared-secret"
-# path = "/bridge/ws"
-# insecure = false   # local development only
-
-# --- Inbound webhook ---------------------------------------------------------
-[webhook]
-# enabled = false
-# port = 9111
-# token = "shared-secret"
-# path = "/hook"
-
-# --- Hooks -------------------------------------------------------------------
-# Run a shell command on engine events (message_received, turn_finished, ...).
-# [[hooks]]
-# event = "message_received"
-# command = "echo \"$CC_HOOK_CONTENT\" >> /tmp/cf-connect.log"

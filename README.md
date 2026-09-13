@@ -9,6 +9,11 @@
 > 本文件与 [QUICKSTART.md](./QUICKSTART.md) 一起随发行的 zip 分发。
 > zip 里**只有** `cf-connect.exe`、`config.example.toml`、`install.ps1`、
 > `QUICKSTART.md` 和本文件；下方"文档"表里指向仓库的链接需要联网访问。
+>
+> 另外仓库里还有一份**比赛用的 CodeFree 插件包**（`plugin/`）：
+> 它把网关、`dingtalk-bridge` skill 和两个斜杠命令打成一个 `.tgz`，
+> 装上后 codefree-o 会话里能直接让 agent 往钉钉推送。见
+> [plugin/README.md](./plugin/README.md)。
 
 ---
 
@@ -34,7 +39,7 @@ CF-Connect 是一个 **IM 通道网关**：把钉钉消息转成对本地 CodeFr
 
 它不是什么：
 
-- ❌ 不是 MCP server，也不是 CodeFree-O 插件
+- ❌ 不是 MCP server；主程序本身也不是 CodeFree-O 插件（插件是仓库里单独的 `plugin/` 包，见上）
 - ❌ 不提供模型，模型额度走你自己的 CodeFree-O 登录
 
 ## 亮点
