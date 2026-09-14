@@ -1,24 +1,8 @@
 # CF-Connect 钉钉桥接插件（cf-connect-dingtalk v0.1.0）
 
-> **在钉钉里远程驱动 CodeFree（codefree-o）**：手机钉钉里派活 → 本机 codefree-o 写代码 →
-> 过程与结果流式回到钉钉会话。
+## 这是什么
 
-这是「CodeFree 技能实践月」的参赛插件包。真正的钉钉 Stream 长连接、会话路由、卡片流式都在
-Go 二进制 `cf-connect.exe` 里实现；插件负责**把网关带进来 + 教会 agent 什么时候怎么用它**。
-
-**装上后 codefree-o 里看得见的东西**（加载器只认这些，`.codefree-plugin/plugin.json` 声明）：
-
-| 注入项 | 内容 | 验证方式 |
-|---|---|---|
-| skill | `cf-connect-setup`（安装/落 PATH/引导拿凭证/连通性验证/卸载升级） | `codefree-o debug skill` |
-| skill | `dingtalk-bridge`（何时推送、怎么推送、失败怎么处置） | `codefree-o debug skill` |
-| command | `/dingtalk-notify`（手动推一条）、`/dingtalk-status`（一键自检链路） | `codefree-o debug config` → `command` 段 |
-
-**包里还有但不会被自动加载的东西**：`index.js` 是一份标准的 codefree-o 插件入口
-（`config` / `event` / `tool` 三个 hook，含 `notify_dingtalk` 工具）。加载器只从
-`srdplugins` 注入 skills / commands / agents / mcpServers（二进制里的 `codefree-plugin inject *`
-日志可以印证），**不会**执行包内的 JS；要启用它，需要在宿主的 `plugin` 数组里注册这个模块
-（`codefree-o plugin <module> -g`）。README 里把它标成「可选增强」，不是本包生效的前提。
+连接 **CodeFree-O 与钉钉**的插件：在手机钉钉里派活，本机 codefree-o 干活，结果流式回推钉钉。
 
 ```
 钉钉 App ──Stream 长连接──▶ cf-connect.exe ──CLI + NDJSON──▶ codefree-o
@@ -26,206 +10,160 @@ Go 二进制 `cf-connect.exe` 里实现；插件负责**把网关带进来 + 教
    └──── 流式卡片 / 完成通知 ◀────┘
 ```
 
----
+## 为什么用它
 
-## 1. 包结构
+- **工作到一半该吃饭了，不慌** —— 转到钉钉继续干活，电脑锁屏也支持
+- **支持 codefree-o 与钉钉共享会话** —— 意味着可以随意切换对话位置
+- **零公网 IP** —— 走钉钉 Stream 长连接，不需要域名、不需要内网穿透
+- **过程可见**（配了 AI 卡片后）—— 思考块、工具调用、结果实时回显
+- **解压即用** —— 不需要 Go / Node / Python / Java
 
-```
-cf-connect-dingtalk-plugin-0.1.0.tgz       ← 上传到比赛平台的就是这个文件
-├── .codefree-plugin/plugin.json        保险副本（比赛文案的 /.codefree-plugin/plugin.json 口径）
-├── config.example.toml                 精简配置样例（= 发行 zip 里那份）
-├── install.ps1                         可选：把 bin\ 加入用户 PATH
-├── QUICKSTART.md                       钉钉应用创建 5 步
-└── package/                            ← codefree-o 实际解包读取的目录
-    ├── .codefree-plugin/
-    │   ├── plugin.json                 ★ 平台校验目标
-    │   └── build-info.json             构建溯源（版本/时间/commit）
-    ├── package.json                    npm 元数据
-    ├── index.js                        插件入口（config / event / tool 三个 hook）
-    ├── skills/cf-connect-setup/SKILL.md 安装/配置/验证/卸载运维手册（面向用户机器的 agent）
-    ├── skills/dingtalk-bridge/SKILL.md 顶层目录 → 自动注入为 skill
-    ├── commands/dingtalk-notify.md     → /dingtalk-notify
-    ├── commands/dingtalk-status.md     → /dingtalk-status
-    ├── bin/cf-connect.exe              网关二进制（打包时从 plugin/bin 带入）
-    ├── config.example.toml
-    ├── QUICKSTART.md
-    └── README.md
-```
+## 如何安装 / 卸载
 
-另外还会产出一份 **`.zip`**（`cf-connect-dingtalk-plugin-0.1.0.zip`），里面放同样的内容 +
-上面这个 `.tgz`：Windows 上双击就能看，方便评审翻阅，也可以解出来直接上传。
-
-## 2. 安装
-
-### 2.1 前置（**必读**）
-
-| 依赖 | 说明 |
-|---|---|
-| CodeFree `codefree-o` | 本插件宿主。`codefree-o --version` 能出版本号即可 |
-| `cf-connect.exe` | 桥接网关。**包内 `package/bin/` 里带了一份**；若没有，去 cf-connect 发行 zip 取，或设置 `CF_CONNECT_BIN` 指向它 |
-| 钉钉企业内部应用 | 需要 `client_id` / `client_secret`，机器人**消息接收模式选 Stream**（详见 QUICKSTART.md） |
-| Node.js | 仅在你自己重打包时需要；最终用户只跑 exe |
-
-> ⚠️ **打包前需放入 `plugin/bin/cf-connect.exe`**。这个路径被 `.gitignore` 的 `*.exe` / `bin/`
-> 规则忽略，所以仓库里不会带二进制；从 cf-connect 发行 zip 里复制一份过去即可：
->
-> ```powershell
-> copy <解压后的发行目录>\cf-connect.exe plugin\bin\cf-connect.exe
-> ```
->
-> 没有它，`pack.mjs` 会打出一条警告，包仍然合法可发布（平台校验只看 `plugin.json`），
-> 但用户装上后没有网关可用，只能自己另外准备二进制。
-
-### 2.2 方式 A：比赛平台上传（推荐）
-
-在 CodeFree 插件发布页选择本地 `.tgz` 上传：
+1. 下载 `cf-connect-dingtalk-plugin-0.1.0.tgz`，**解压到一个目录**（建议英文路径，如 `D:\tools\cf-connect-dingtalk\`）
+2. 在这个目录里打开 codefree-o，直接对话：
 
 ```
-dist/cf-connect-dingtalk-plugin-0.1.0.tgz
+帮我安装 cf-connect-dingtalk
 ```
 
-平台会解包并校验 `package/.codefree-plugin/plugin.json`；本仓库的
-`verify-pack.mjs` 用同一套口径做过预检（见 §5）。
+卸载也是同一句话：
 
-### 2.3 方式 B：手动解包到 srdplugins
+```
+帮我卸载 cf-connect-dingtalk
+```
+
+> 安装靠包内自带的 `cf-connect-setup` skill 自动完成。遇到**只能由你提供**的信息
+> （钉钉凭证、工作目录）它会停下来问你，并给出获取步骤。
+
+### 装完还需要一个钉钉企业内部应用
+
+机器人要用**你自己的**钉钉应用凭证，这一步插件替不了你：
+
+1. 打开 [钉钉开放平台](https://open-dev.dingtalk.com/) → 应用开发 → **企业内部应用** → 创建应用
+2. 记下 **AppKey** 与 **AppSecret**
+3. 左侧「机器人」→ **消息接收模式选 `Stream`**（这样本机不用公网 IP）
+4. 「权限管理」勾选机器人发送消息、接收消息相关权限
+5. **发布应用**（没发布，消息进不来）
+
+> ⚠️ 只解压、没配凭证时，`cf-connect.exe` 起不来或收不到消息——这是正常的，把凭证填进
+> `config.toml` 再启动即可。图文步骤见同目录的 `QUICKSTART.md`。
+
+## 如何简单启动 / 关闭
+
+- **启动**：安装成功后，用 PowerShell 打开 `package\bin` 目录，执行 `cf-connect.exe`
+  （把 `bin` 加进 PATH 后，任意目录直接敲 `cf-connect` 也行）
+- **关闭**：直接关掉那个 PowerShell 窗口
+
+想后台常驻（关窗口也不停）：
 
 ```powershell
-# 1. 解包
-tar -xzf cf-connect-dingtalk-plugin-0.1.0.tgz -C $env:TEMP\cfplug
-
-# 2. 放到加载器扫描的目录（目录名必须是 <name>@<version>）
-$dst = "$env:USERPROFILE\.codefree-o\.config\srdplugins\cf-connect-dingtalk@0.1.0"
-New-Item -ItemType Directory -Force $dst | Out-Null
-Copy-Item -Recurse -Force "$env:TEMP\cfplug\package" $dst\
-
-# 3. 重启 codefree-o，确认 skills/commands 已注入
-codefree-o debug skill          # 应出现 dingtalk-bridge
-```
-
-仓库内的 `node plugin/scripts/install-local.mjs` 会自动完成第 1–2 步。
-
-## 3. 配置
-
-### 3.1 网关配置（config.toml）
-
-```powershell
-copy config.example.toml config.toml
-# 填 4 处：work_dir、cmd、client_id、client_secret
 cf-connect daemon install
 cf-connect daemon start
 ```
 
-配置样例里每个字段都有中文注释，只需要改这 4 处：
+## 配置（config.toml）
+
+配置样例里每个字段都有中文注释，**通常只需要改这 4 处**：
 
 | 字段 | 作用 |
 |---|---|
 | `work_dir` | codefree-o 读写代码的目录 |
 | `cmd` | 要驱动的 CLI（`codefree-o` 或绝对路径） |
-| `client_id` / `client_secret` | 钉钉企业内部应用凭证 |
+| `client_id` / `client_secret` | 钉钉企业内部应用凭证（AppKey / AppSecret） |
+| `allow_from` | 谁可以跟机器人对话（填你自己的 userId） |
 
-### 3.2 插件环境变量（全部可选）
+### 怎么拿到自己的 userId
 
-| 变量 | 默认值 | 作用 |
-|---|---|---|
-| `CF_CONNECT_BIN` | 自动探测 | cf-connect 可执行文件绝对路径 |
-| `CF_CONNECT_CONFIG` | 网关默认 | config.toml 路径 |
-| `CF_CONNECT_DATA_DIR` | `~/.cf-connect` | 数据目录（会话、socket、日志） |
-| `CF_CONNECT_NOTIFY` | `1` | `0` 关闭「一轮结束自动回推钉钉」 |
-| `CF_CONNECT_SESSION_KEY` / `CF_CONNECT_PROJECT` | 空 | 默认推送目标会话 / 项目 |
+凭证填好、服务启动后，在钉钉里对机器人发：
 
-自动探测顺序：`CF_CONNECT_BIN` → `package/bin/` → `~/.cf-connect/` → PATH。
+```
+/whoami
+```
 
-### 3.3 插件行为
+正常情况下会输出你的个人信息，其中包含 **userId** —— 就是下面这两项要填的值：
 
-**装完即生效（加载器注入，不需要额外动作）：**
+```toml
+allow_from = "你的 userId"        # 谁可以对话（强烈建议填，防止别人用你的额度）
+admin_from = "你的 userId"        # 管理员的 userId（留空 = 管理命令对所有人都关闭）
+```
 
-| 注入项 | 行为 |
+## 常用命令（在钉钉里发）
+
+| 命令 | 作用 |
 |---|---|
-| skill `cf-connect-setup` | 让用户机器上的 agent 会"安装/配置/验证/卸载 cf-connect"：模糊指令（"装 cf-connect"、"测下连通性"）即可触发；缺钉钉凭证时引导用户去开放平台获取 |
-| skill `dingtalk-bridge` | 告诉 agent **何时**推、**怎么**推、**失败时不要重试** |
-| `/dingtalk-notify` | 斜杠命令：把 `$ARGUMENTS` 推送到钉钉当前会话 |
-| `/dingtalk-status` | 斜杠命令：一键自检桥接链路（版本 / doctor / socket / 实发一条） |
+| `/list` | 加载当前工作目录所有会话 |
+| `/switch <会话标题>` 或 `/switch <序号>` | 切换会话 |
+| `/dir` | 查看当前工作目录 |
+| `/dir <绝对路径>` | 切换工作路径 |
+| `/whoami` | 查看自己的 userId |
+| `/new` | 开一个新会话 |
 
-**可选增强（`index.js`，需要在宿主 `plugin` 数组里注册后才生效）：**
+> **建议用会话标题（或会话 ID 前缀）来 `/switch`，尽量别用序号** —— 序号是列表里的位置，
+> 列表一变就会错位。
+>
+> 同一时间**不要在终端和钉钉两边同时聊同一个会话**，消息可能交错。
 
-| Hook / 工具 | 行为 |
+## Q&A
+
+**Q：每次切换不同工作空间都需要手动改一次 `work_dir` 么？**
+A：不需要，直接在钉钉用命令 `/dir <绝对路径>` 切换工作路径。
+
+**Q：我在终端里聊到一半，能在钉钉接着聊吗？**
+A：可以。钉钉里发 `/list` 找到那个会话，再 `/switch <标题>`；反过来也一样。
+（切换前先把终端那侧退出，避免两边同时写同一个会话。）
+
+**Q：回复为什么不是一句一句出来的？**
+A：没配 AI 卡片流式。想看到实时过程：钉钉开放平台 → **卡片平台** → 新建「AI 卡片」模板，
+放一个绑定变量 `content` 的 Markdown 组件并发布，把模板 ID 填进 `config.toml` 的
+`card_template_id`。不配也能用，只是整轮跑完一次性到达。
+
+**Q：机器人能看到我电脑上别的项目吗？**
+A：只在 `work_dir`（或 `/dir` 切过去的目录）里干活，其它目录它看不到。
+
+**Q：安全吗？**
+A：钉钉凭证只存在**你本机**的 `~/.cf-connect/config.toml`；建议 `allow_from` 填自己的 userId；
+`work_dir` 指向专用工作目录，别指到家目录或系统盘根目录；演示时 `mode` 用 `default`
+（`yolo` 会跳过 CLI 的权限提示）。
+
+## 排障
+
+日志位置：
+
+| 文件 | 内容 |
 |---|---|
-| `config` | 启动时若 `~/.cf-connect/run/api.sock` 不存在，就 `cf-connect daemon start`（detached，只尝试一次） |
-| `event` | 收到 `session.idle` 且网关在跑时，取该会话最后一条 assistant 文本，用 `cf-connect send --stdin` 回推钉钉；按 `sessionID + 文本摘要` 去重，失败只写日志抛不出去 |
-| `tool: notify_dingtalk` | 让 agent 主动推一条 Markdown 到钉钉（参数：`message`、可选 `session` / `project`） |
+| `~/.cf-connect/plugin.log` | 插件（启动、回推、告警）的记录 |
+| `~/.cf-connect/` 下的网关日志 | Stream 连接、会话、错误 |
+| 钉钉应用后台 | 机器人收发的原始回执 |
 
-## 4. 排障
-
-日志：`~/.cf-connect/plugin.log`（插件）、`~/.cf-connect/` 下的网关日志。
-
-| 报错 / 现象 | 原因 | 处置 |
+| 现象 / 报错 | 原因 | 处置 |
 |---|---|---|
-| `package directory not found in extracted plugin` | tgz 根下不是 `package/` | 用 `scripts/pack.mjs` 重新打包（npm pack 布局） |
-| `.codefree-plugin/plugin.json not found` | 路径不对 | 必须是 `package/.codefree-plugin/plugin.json` |
-| `is not a JSON object` | plugin.json 顶层是数组 | 顶层必须是对象 `{...}` |
-| `does not declare codefree compatibility` | `agentCompatibility` 不含 `codefree` 或含 `opencode-npm` | 改成 `["codefree"]` |
-| `skipping ... outside packageRoot` | 包内有指向包外的符号链接 | 不要用符号链接，tgz 里必须是真实文件 |
-| `cf-connect is not running (socket not found)` | 网关没启动 | `cf-connect daemon start`，再看 `~/.cf-connect/` 日志 |
-| 钉钉里没收到消息 | 应用没开 Stream 模式 / 没发布 / 没加机器人 | 见 QUICKSTART.md 第 2 步 |
+| 钉钉里没收到消息 | 应用没开 Stream 模式 / 没发布 / 没加机器人 | 回「装完还需要一个钉钉企业内部应用」第 3、5 步 |
+| `cf-connect is not running (socket not found)` | 网关没启动 | `cf-connect daemon start`，或前台直接跑 `cf-connect.exe` 看日志 |
+| `unknown flag: --dangerously-skip-permissions` | `yolo` 给老版本 CLI 发了不支持的标志 | 配 `permission_flag = "--auto"`（默认值） |
+| 回复慢、没有过程 | 没配 AI 卡片流式 | 配 `card_template_id`（见 Q&A） |
+| 会话标题 / 消息数显示为空 | 数据目录没识别对 | 配 `data_dir` / `db_file`（见 config.toml 高级段） |
+| 钉钉凭证报错 | AppKey / AppSecret 不对 | 核对 `client_id` / `client_secret`（别贴进聊天） |
+| `cf-connect doctor` 报 not supported | Windows 上不支持该命令 | 改用 `cf-connect --version` + `cf-connect daemon status` |
+| 中文 / 空格路径下行为异常 | 第三方 CLI 解析问题 | 换到英文路径，如 `D:\tools\cf-connect\` |
 | SmartScreen 拦截 exe | 未签名 | 「更多信息 → 仍要运行」；企业内可统一签名 |
 
-## 5. 校验与重新打包（开发者）
+## 卸载 / 回滚
 
 ```powershell
-cd plugin
-node scripts/pack.mjs                 # → dist/cf-connect-dingtalk-plugin-0.1.0.tgz
-node scripts/verify-pack.mjs          # 七项断言 + 打印 tgz 内完整文件清单
-node scripts/make-zip.mjs             # 另出一份 .zip（内含同一个 tgz，便于翻阅）
-node scripts/install-local.mjs        # 装到本机 srdplugins，做真机验证
-node scripts/install-local.mjs --remove
+cf-connect daemon stop          # 停服务
+cf-connect daemon uninstall     # 删服务（保留数据与配置）
 ```
 
-`verify-pack.mjs` 复刻 codefree-o 1.7.0 二进制里的校验函数（变量名为混淆后，逐字摘录）：
-
-```js
-async function ul(n){                                   // n = 解包后的插件根目录
-  let o = join(n, "package");
-  if (!exists(o)) return {ok:false, error:`package directory not found in extracted plugin: ${o}`};
-  let c = join(o, ".codefree-plugin", "plugin.json");
-  if (!exists(c)) return {ok:false, error:`.codefree-plugin/plugin.json not found: ${c}`};
-  let u; try { u = readJson(c) } catch { return {ok:false, error:`failed to parse ...`} }
-  if (typeof u!=="object" || u===null || Array.isArray(u))
-    return {ok:false, error:`.codefree-plugin/plugin.json is not a JSON object: ${c}`};
-  let r = u.agentCompatibility;
-  if (!Array.isArray(r) || !r.includes("codefree") || r.includes("opencode-npm"))
-    return {ok:false, error:"plugin does not declare codefree compatibility in agentCompatibility"};
-  return {ok:true};
-}
-```
-
-真机验证记录（本机 codefree-o 1.7.0，装到 `srdplugins/cf-connect-dingtalk@0.1.0` 之后）：
-
-| 命令 | 结果 |
-|---|---|
-| `codefree-o debug skill` | 列表中出现 `dingtalk-bridge`，location 指向 `…/srdplugins/cf-connect-dingtalk@0.1.0/package/skills/dingtalk-bridge/SKILL.md` |
-| `codefree-o debug config` | `command` 段出现 `dingtalk-status` / `dingtalk-notify`；`skills.paths` 出现 `…/srdplugins/cf-connect-dingtalk@0.1.0/package/skills` |
-| 加载日志 | 无 `not found` / `does not declare codefree compatibility` / `is not a JSON object` / `outside packageRoot` 报错 |
-
-## 6. 卸载 / 回滚
-
-```powershell
-# 1. 卸载插件
-node plugin/scripts/install-local.mjs --remove
-#    或手动删目录：
-Remove-Item -Recurse -Force "$env:USERPROFILE\.codefree-o\.config\srdplugins\cf-connect-dingtalk@0.1.0"
-
-# 2. 停掉并卸载网关服务（可选）
-cf-connect daemon stop
-cf-connect daemon uninstall
-
-# 3. 彻底清干净（会丢掉会话历史）
-Remove-Item -Recurse -Force "$env:USERPROFILE\.cf-connect"
-```
+- 从 PATH 移除（装过 `install.ps1` 的话）：`powershell -ExecutionPolicy Bypass -File .\install.ps1 -Uninstall`
+- 删数据目录（**会丢掉会话历史、定时任务、web token**）：删除 `%USERPROFILE%\.cf-connect`
+- 插件本身：在解压目录里对 codefree-o 说「帮我卸载 cf-connect-dingtalk」
+- ⚠️ **钉钉那边的应用不会自动解绑**，要不要删由你去钉钉开放平台决定
 
 插件不改动 `codefree-o` 的任何原生文件：注入的 skills / commands 只在加载期生效，
-删掉 `srdplugins` 下的目录即完全回滚。
+删掉插件目录即完全回滚。
 
-## 7. 版本与许可
+## 版本与许可
 
 - 插件版本 **0.1.0**（`plugin.json` = `package.json` = tgz 文件名）
 - 网关 `cf-connect` 版本 **v0.1.0**
