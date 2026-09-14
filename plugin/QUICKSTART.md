@@ -51,7 +51,7 @@ notepad config.toml
 
 ```toml
 [projects.agent.options]
-work_dir = "D:\\workspace_idea"    # ① codefree-o 读写代码的目录
+work_dir = "D:\\你的项目目录"        # ① 必改：必须是这台机器上真实存在的目录
 cmd = "codefree-o"                 # ② 要驱动的 CLI（写绝对路径最稳）
 
 [projects.platforms.options]
@@ -59,6 +59,11 @@ client_id = "你的 AppKey"           # ③
 client_secret = "你的 AppSecret"    # ④
 # allow_from = "你的 userId"        # 建议填上
 ```
+
+> ⚠️ **① 千万别留着占位符**。`work_dir` 指向不存在的目录时，服务能起来，
+> 但你在钉钉里发第一句话会报
+> `Error: opencodeSession: start: chdir <路径>: The system cannot find the file specified.`
+> 目录不存在就先新建一个。已经踩到了也可以不改配置，直接在钉钉里发 `/dir <绝对路径>`。
 
 ---
 

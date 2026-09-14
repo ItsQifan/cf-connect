@@ -3,7 +3,7 @@
 # =============================================================================
 # 三步上手：
 #   1. copy config.example.toml config.toml
-#   2. 填下面 4 个地方：work_dir、cmd、client_id、client_secret
+#   2. 填下面 4 个地方：work_dir（必须是真实存在的目录）、cmd、client_id、client_secret
 #   3. cf-connect.exe            （前台跑，看到日志即成功）
 #      cf-connect.exe daemon install && cf-connect.exe daemon start   （常驻）
 #
@@ -59,9 +59,11 @@ name = "my-project"
 type = "opencode"
 
 [projects.agent.options]
-# agent 读取和写入代码的位置。选择你实际希望它工作的目录。
-# 在此启动的会话会记住自己的 agent 会话 ID。
-work_dir = "D:\\workspace_idea"
+# ⚠️ 必须改（这里是占位符）：改成你机器上**真实存在**的目录。
+# 目录不存在时，服务能起来，但你在钉钉里发的第一句话会报：
+#   Error: opencodeSession: start: chdir <这里填的路径>: The system cannot find the file specified.
+# 想换目录也可以不改这里：在钉钉里发 /dir <绝对路径> 随时切换。
+work_dir = "D:\\工作目录"
 
 # 要驱动的 CLI。可以写 PATH 里的名字，也可以写绝对路径（常驻服务推荐绝对路径，
 # 因为服务进程不会继承你终端里的 PATH）。

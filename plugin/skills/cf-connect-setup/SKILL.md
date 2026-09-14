@@ -51,7 +51,10 @@ cf-connect daemon status
 Test-Path "$env:USERPROFILE\.cf-connect\run\api.sock"   # 存在 = 有实例在跑
 ```
 
-配置查找顺序（`main.go:1440`）：**`--config` 参数 > 当前目录 `config.toml` > `~/.cf-connect/config.toml`**。找不到时首次启动会自动生成一份样例——但那是**带占位符**的，必须后面替换。
+配置查找顺序（`main.go:1440`）：**`--config` 参数 > 当前目录 `config.toml` > `~/.cf-connect/config.toml`**。
+两处都没有时，`cf-connect` 会在**自己启动的那一刻**写一份带占位符的样例进去 ——
+所以"配置不存在"这件事**只有真正去启动它才会被解决**；插件装完但没人启动时，
+`~/.cf-connect/config.toml` 就是不存在（处理方式见 §3 的 A5）。
 
 > ⚠️ `cf-connect daemon uninstall` **会真的执行卸载**，加 `--help` 也会执行。别拿它当"看看用法"。
 > ⚠️ **Windows 上 `cf-connect doctor` 不支持**（会直接说 not supported）。别把它当验证手段，用 §5 的验证流程。
@@ -81,8 +84,18 @@ powershell -ExecutionPolicy Bypass -File <release目录>\install.ps1
 ```
 
 - 只写 `HKCU`，不需要管理员权限；`-Uninstall` 可撤销
-- **只对新开的终端生效**——本会话内一律用绝对路径，别假设 `cf-connect` 现在就能直接敲
+- **只对新开终端生效**——本会话内一律用绝对路径，别假设 `cf-connect` 现在就能直接敲
 - 如果用户不想动 PATH，就跳过，后续所有命令用 `<release目录>\cf-connect.exe`
+
+### A3. 认识两个目录（别搞混）
+
+| 目录 | 是什么 | 里面有什么 |
+|---|---|---|
+| **解压目录**（如 `D:\tools\cf-connect-dingtalk\`） | 用户解压插件 tgz 得到的位置 | `package\`（含 `bin\cf-connect.exe`、`config.example.toml`、skill、README）、<br>`config.example.toml`、`QUICKSTART.md`、`install.ps1` |
+| `%USERPROFILE%\.cf-connect\` | **运行时目录**，cf-connect 自己用 | `config.toml`（要你建）、`run\api.sock`、会话历史、日志 |
+
+**配置放运行时目录，样例在解压目录**：`<解压目录>\package\config.example.toml`
+→ 复制成 `%USERPROFILE%\.cf-connect\config.toml`。这是 A5 要做的事。
 
 验证：
 
@@ -90,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File <release目录>\install.ps1
 & <release目录>\cf-connect.exe --version      # 必须打印版本号，如 cf-connect v0.1.0
 ```
 
-### A3. 确认宿主（codefree-o）
+### A4. 确认宿主（codefree-o）
 
 ```powershell
 codefree-o --version
@@ -104,21 +117,53 @@ codefree-o --version
 # 常见位置：C:\nvm4w\nodejs\node_modules\@srdcloud\codefree-o\bin\codefree-o.exe
 ```
 
-### A4. 写 config.toml（需要用户输入的部分在这里）
+### A5. 先建出 config.toml，再填（**这一步不能跳**）
+
+解压/安装完之后 `~/.cf-connect/` 里**很可能根本没有 `config.toml`** ——
+`cf-connect` 只在自己第一次启动时才生成，而那时它已经因为缺钉钉凭证起不来了。
+所以**由你（agent）先把文件建出来**，它是填写的唯一依据：
 
 ```powershell
 $cfgDir = "$env:USERPROFILE\.cf-connect"
 New-Item -ItemType Directory -Force $cfgDir | Out-Null
+
 if (-not (Test-Path "$cfgDir\config.toml")) {
-  Copy-Item "<release目录>\config.example.toml" "$cfgDir\config.toml"
+  # 按优先级找“插件包自带的样例”：先找解压目录，再找已安装的 srdplugins
+  $cands = @(
+    "<解压目录>\package\config.example.toml"      # 解压 tgz 得到的目录
+    "<解压目录>\config.example.toml"              # 有些包样例在根级
+    "$env:USERPROFILE\.codefree-o\.config\srdplugins\cf-connect-dingtalk@*\package\config.example.toml"
+  )
+  $tpl = $cands | ForEach-Object { Get-Item $_ -ErrorAction SilentlyContinue } |
+         Select-Object -First 1 -ExpandProperty FullName
+  if (-not $tpl) { $tpl = "<release目录>\config.example.toml" }   # 最后回退到 cf-connect 发行目录
+
+  if (Test-Path $tpl) {
+    Copy-Item $tpl "$cfgDir\config.toml" -Force
+    Write-Host "已从样例创建配置：$cfgDir\config.toml（来源：$tpl）"
+  } else {
+    Write-Host "!! 找不到 config.example.toml，无法自动创建配置"
+  }
+} else {
+  Write-Host "配置已存在：$cfgDir\config.toml（保留原文件，不覆盖）"
 }
+
+# 三闸门：文件在、能解析、路径一致 —— 全过再往下走
+Test-Path        "$cfgDir\config.toml"
+& <cf-connect> config format --config "$cfgDir\config.toml"
+& <cf-connect> config path --config "$cfgDir\config.toml"     # 必须回显同一个路径
 ```
+
+> ⚠️ 别指望 `cf-connect.exe` 自己生成：它只在"当前目录没有 config.toml 且
+> `~/.cf-connect/config.toml` 也不存在"时，于启动那一刻写一份带占位符的样例。
+> 你要做的是**在启动之前**就把文件准备好，否则用户下次运行还是起不来。
+> 已经存在 `config.toml` 时**不要覆盖**（用户可能填过凭证了）。
 
 然后**逐项向用户确认/索要**，一次问清楚，别反复打扰：
 
 | 要填的 | 谁来定 | 怎么问 / 怎么自动定 |
 |---|---|---|
-| `work_dir` | **问用户** | 「你希望我在哪个目录里改代码？给绝对路径。建议专用目录，别用家目录或 C 盘根目录。」拿到后 `Test-Path` 验证存在，不存在就问是否创建 |
+| `work_dir` | **问用户** | 「你希望我在哪个目录里改代码？给绝对路径。建议专用目录，别用家目录或 C 盘根目录。」填完后**必须过 A5.1 的实例校验** |
 | `cmd` | 自动 | 探测到的 codefree-o 路径；在 PATH 里就写 `codefree-o`，否则写绝对路径（**常驻服务推荐绝对路径**，因为服务不继承终端 PATH） |
 | `mode` | 建议 `default` | 「演示或首次使用建议 `default`；`yolo` 会跳过 CLI 的权限提示，确认了再开」 |
 | `client_id` / `client_secret` | **只能用户给** | 见 §4 的引导话术 |
@@ -127,14 +172,49 @@ if (-not (Test-Path "$cfgDir\config.toml")) {
 | `card_template_id` | 可选 | 想要"边跑边看过程"才需要，见 §4 第 2 部分 |
 | `language` | 自动 | 用户说中文就 `zh` |
 
-改完立刻校验格式（会顺便规整）：
+#### A5.1 定稿前必须做的实例校验（**漏掉这一条 = 钉钉里第一条消息必炸**）
 
-```powershell
-& <cf-connect> config format --config "$cfgDir\config.toml"
-& <cf-connect> config path --config "$cfgDir\config.toml"
+样例里的 `work_dir = "D:\\工作目录"`、`cmd = "codefree-o"` 是**占位符**。
+如果直接照抄，服务能起来，但用户在钉钉发第一句话会收到：
+
+```
+Error: opencodeSession: start: chdir D:\工作目录: The system cannot find the file specified.
 ```
 
+（原因：`agent/opencode/session.go` 把 `cmd.Dir` 设成 `work_dir`，目录不存在 exec 就失败；
+cf-connect 启动时**不校验** `work_dir`，所以是延迟到第一条消息才报错。）
+
+把配置里**所有"路径型"和"命令型"的值逐个实例校验**，全部通过才算定稿：
+
+```powershell
+# work_dir：必须存在，且是目录。不存在就直接建（别留给用户自己去踩）
+$wd = "<用户给的工作目录>"
+if (-not (Test-Path $wd -PathType Container)) {
+  New-Item -ItemType Directory -Force $wd | Out-Null
+  Write-Host "已创建工作目录：$wd"
+}
+Test-Path $wd -PathType Container          # 必须 True
+
+# cmd：必须能解析到，否则先解决宿主再定稿
+(Get-Command codefree-o -ErrorAction SilentlyContinue).Source
+
+# 别留占位符：确认这两个值都不是样例原样
+Select-String -Path "$cfgDir\config.toml" -Pattern '^\s*(work_dir|cmd)\s*='
+```
+
+判定：
+
+| 检查项 | 不通过时怎么办 |
+|---|---|
+| `work_dir` 不存在 | **默认直接创建**；用户明确说不要就再问他要别的目录 |
+| `work_dir` 指向家目录 / 系统盘根 / 网络共享 | 提醒风险（agent 会在这个目录里读写、跑命令），建议换成专用项目目录 |
+| `cmd` 解析不到 | 先装/修好 codefree-o，或用绝对路径；**不要**带着一个跑不起来的 `cmd` 定稿 |
+| 配置里还留着 `D:\工作目录` 这类占位符 | 说明没真正改过，回到上表重新填 |
+
+#### A5.2 回显
+
 回显给用户时，`client_secret` 一律脱敏：**前 4 位 + `…` + 后 4 位**。
+并明确告诉他「`work_dir` 已设为 `X`，在钉钉里可以用 `/dir <绝对路径>` 随时切换」。
 
 ## 4. 引导用户拿钉钉凭证（你无法代替的一步）
 
@@ -189,9 +269,11 @@ Test-Path "$env:USERPROFILE\.cf-connect\run\api.sock"
 
 判定表（照着回给用户）：
 
-| 现象 | 结论 | 下一步 |
+| 现象 / 报错 | 原因 | 下一步 |
 |---|---|---|
+| 钉钉里回 `Error: opencodeSession: start: chdir <路径>: The system cannot find the file specified.` | **`work_dir` 指向了不存在的目录**（多半是照抄了样例里的占位符） | 配置里改成真实目录后 `daemon restart`；或直接在钉钉发 `/dir <绝对路径>`（命令不拉 agent，所以还能用）；预防见 §3 的 A5.1 |
 | ① 报 command not found | 没装或没在 PATH | 用绝对路径；或跑 `install.ps1` 后**新开终端** |
+| ② 报 `Config file not found: ...\.cf-connect\config.toml` | 装完还没建配置（**最常见**） | 回 §3 的 A5：从 `package\config.example.toml` 复制到 `~/.cf-connect/config.toml`，再填 4 处 |
 | ② 报解析错误 | 配置格式坏了 | 对着 `config.example.toml` 修，或重新生成 |
 | ③ 失败 | 宿主缺失/未登录 | `codefree-o --version` 修复；必要时 `codefree-o auth` |
 | ④ 没有 cf-connect 进程 | 服务没起 | `& $cc daemon install ; & $cc daemon start` |
@@ -199,6 +281,7 @@ Test-Path "$env:USERPROFILE\.cf-connect\run\api.sock"
 | ⑤ 报凭证错误 | `client_id`/`client_secret` 不对 | 回 §4 重新核对（注意别贴明文） |
 | ⑤ 返回成功但钉钉没收到 | 应用没发布 / 不是 Stream 模式 / 机器人没启用 / `allow_from` 没包含自己 | 逐条核 §4 的 3、4、5 步 |
 | 全绿但用户说"我发消息它不回" | 会话侧问题 | 让用户在当前会话发 `/status`；或看 `~/.cf-connect` 下的日志 |
+| 验证时**故意发一句话**回来了 `chdir ... cannot find the file` | `work_dir` 不存在（照抄了占位符） | 改配置或 `/dir <真实路径>`；预防见 §3 的 A5.1。**收到这条就说明前面几步全过了，只差目录** |
 
 **验证成功的定义只有一个：用户在钉钉里真的收到并回了一条消息。** 命令返回 0 不算。
 

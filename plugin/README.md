@@ -64,14 +64,31 @@ cf-connect daemon start
 
 ## 配置（config.toml）
 
-配置样例里每个字段都有中文注释，**通常只需要改这 4 处**：
+插件解压/安装完之后，**`~/.cf-connect/` 里还没有 `config.toml`** ——
+需要从包内的样例复制一份出来（装到最后一步时 agent 会提醒你，也可以自己来）：
 
-| 字段 | 作用 |
-|---|---|
-| `work_dir` | codefree-o 读写代码的目录 |
-| `cmd` | 要驱动的 CLI（`codefree-o` 或绝对路径） |
-| `client_id` / `client_secret` | 钉钉企业内部应用凭证（AppKey / AppSecret） |
-| `allow_from` | 谁可以跟机器人对话（填你自己的 userId） |
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.cf-connect" | Out-Null
+copy package\config.example.toml "$env:USERPROFILE\.cf-connect\config.toml"
+```
+
+配置样例里每个字段都有中文注释。**只有 `work_dir` 是必须改的**（其余都有可用默认值）：
+
+| 字段 | 作用 | 要不要改 |
+|---|---|---|
+| **`work_dir`** | codefree-o 读写代码的目录 | **必须改** —— 样例里是占位符 `D:\工作目录` |
+| `cmd` | 要驱动的 CLI（`codefree-o` 或绝对路径） | 默认 `codefree-o`，不在 PATH 时改成绝对路径 |
+| `client_id` / `client_secret` | 钉钉企业内部应用凭证（AppKey / AppSecret） | 必须填 |
+| `allow_from` | 谁可以跟机器人对话（填你自己的 userId） | 建议填 |
+
+> ⚠️ **`work_dir` 指向不存在的目录时**：服务照样能起来，但你在钉钉里发的**第一句话**会报
+>
+> ```
+> Error: opencodeSession: start: chdir D:\工作目录: The system cannot find the file specified.
+> ```
+>
+> 所以填之前先确认目录真的存在（不存在就新建一个）。
+> 已经踩到了也不用改配置：直接在钉钉里发 `/dir <绝对路径>` 就能切换过去。
 
 ### 怎么拿到自己的 userId
 
