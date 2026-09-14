@@ -68,6 +68,9 @@ cf-connect send -m "bridge ping"      # 3. 能不能真的推到钉钉
 
 ## 硬性注意
 
+> 还没装 cf-connect、或钉钉那边没配好？先看同包里的 **`cf-connect-setup`** skill
+> （找 release 目录 / 落 PATH / 引导拿钉钉凭证 / 连通性验证 / 卸载升级）。
+
 1. **不要自己实现钉钉协议**。Stream 长连接、卡片流式、消息路由都在 Go 二进制里，
    你只需要调用 `cf-connect send`。
 2. **推送要克制**：一个任务默认只推「开始 + 结束」两条，除非用户要求更细。

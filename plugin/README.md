@@ -10,6 +10,7 @@ Go 二进制 `cf-connect.exe` 里实现；插件负责**把网关带进来 + 教
 
 | 注入项 | 内容 | 验证方式 |
 |---|---|---|
+| skill | `cf-connect-setup`（安装/落 PATH/引导拿凭证/连通性验证/卸载升级） | `codefree-o debug skill` |
 | skill | `dingtalk-bridge`（何时推送、怎么推送、失败怎么处置） | `codefree-o debug skill` |
 | command | `/dingtalk-notify`（手动推一条）、`/dingtalk-status`（一键自检链路） | `codefree-o debug config` → `command` 段 |
 
@@ -41,6 +42,7 @@ cf-connect-dingtalk-plugin-0.1.0.tgz       ← 上传到比赛平台的就是这
     │   └── build-info.json             构建溯源（版本/时间/commit）
     ├── package.json                    npm 元数据
     ├── index.js                        插件入口（config / event / tool 三个 hook）
+    ├── skills/cf-connect-setup/SKILL.md 安装/配置/验证/卸载运维手册（面向用户机器的 agent）
     ├── skills/dingtalk-bridge/SKILL.md 顶层目录 → 自动注入为 skill
     ├── commands/dingtalk-notify.md     → /dingtalk-notify
     ├── commands/dingtalk-status.md     → /dingtalk-status
@@ -139,6 +141,7 @@ cf-connect daemon start
 
 | 注入项 | 行为 |
 |---|---|
+| skill `cf-connect-setup` | 让用户机器上的 agent 会"安装/配置/验证/卸载 cf-connect"：模糊指令（"装 cf-connect"、"测下连通性"）即可触发；缺钉钉凭证时引导用户去开放平台获取 |
 | skill `dingtalk-bridge` | 告诉 agent **何时**推、**怎么**推、**失败时不要重试** |
 | `/dingtalk-notify` | 斜杠命令：把 `$ARGUMENTS` 推送到钉钉当前会话 |
 | `/dingtalk-status` | 斜杠命令：一键自检桥接链路（版本 / doctor / socket / 实发一条） |

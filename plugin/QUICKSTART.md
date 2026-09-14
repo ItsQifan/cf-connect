@@ -85,10 +85,25 @@ cf-connect daemon start
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
-| 网关在跑 | `cf-connect doctor` | 全部 ✅，且显示真实的 codefree-o 路径 |
+| 网关在跑 | `cf-connect daemon status` + `dir %USERPROFILE%\.cf-connect\run` | 服务在跑，且目录里有 `api.sock`（⚠️ Windows 上 `cf-connect doctor` 不支持，别用它） |
 | 能发消息到钉钉 | `cf-connect send -m "bridge ping"` | 钉钉里收到 `bridge ping` |
-| 插件已注入 | `codefree-o debug skill` | 列表里有 `dingtalk-bridge` |
+| 插件已注入 | `codefree-o debug skill` | 列表里有 `cf-connect-setup` 和 `dingtalk-bridge` |
 | 我的 userId | 钉钉里发 `/whoami` | 回复一串 userId |
+
+## 懒人模式：让 codefree-o 自己装
+
+装上本插件后，用户机器上的 codefree-o 会获得 `cf-connect-setup` skill，
+上面这一整套（找 release 目录 → 落 PATH → 写 config.toml → 引导拿钉钉凭证 → 验证）
+都可以直接在 codefree-o 对话框里一句话交给 agent：
+
+```
+安装 cf-connect
+测一下钉钉连通性
+卸载 cf-connect
+```
+
+agent 会自动做完能自动做的部分，只在**必须用户提供**的地方停下来问你
+（钉钉 AppKey/AppSecret、`work_dir`、是否加白名单），并给出获取步骤。
 
 ## 常见问题
 

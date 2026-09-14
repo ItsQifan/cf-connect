@@ -11,8 +11,9 @@
 > `QUICKSTART.md` 和本文件；下方"文档"表里指向仓库的链接需要联网访问。
 >
 > 另外仓库里还有一份**比赛用的 CodeFree 插件包**（`plugin/`）：
-> 它把网关、`dingtalk-bridge` skill 和两个斜杠命令打成一个 `.tgz`，
-> 装上后 codefree-o 会话里能直接让 agent 往钉钉推送。见
+> 它把网关、`cf-connect-setup`（安装/配置/验证运维手册）、`dingtalk-bridge` skill
+> 和两个斜杠命令打成一个 `.tgz`。装上后 codefree-o 里可以直接说
+> "安装 cf-connect""测一下连通性"，由 agent 自动完成配置。见
 > [plugin/README.md](./plugin/README.md)。
 
 ---
