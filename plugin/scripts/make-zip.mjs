@@ -144,9 +144,10 @@ const tgzs = readdirSync(DIST).filter((f) => f.endsWith(".tgz")).sort().reverse(
 if (!tgzs.length) throw new Error("no .tgz in dist/; run: node scripts/pack.mjs");
 const tgzName = tgzs[0];
 const tgzPath = join(DIST, tgzName);
-const version = (tgzName.match(/-(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)\.tgz$/) || [])[1] ?? "0.0.0";
 
-const zipName = `cf-connect-dingtalk-plugin-${version}.zip`;
+// 包名形如 cf-connect-dingtalk-plugin-<版本>-<平台>.tgz，zip 沿用同一个后缀
+const suffix = (tgzName.match(/^cf-connect-dingtalk-plugin-(.+)\.tgz$/) || [])[1] ?? "0.0.0";
+const zipName = `cf-connect-dingtalk-plugin-${suffix}.zip`;
 const zipPath = join(DIST, zipName);
 
 rmSync(STAGE, { recursive: true, force: true });

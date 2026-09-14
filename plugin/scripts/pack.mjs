@@ -21,7 +21,19 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  readSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -69,6 +81,39 @@ function human(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
+// 从 PE 头读出 .exe 的真实目标架构。返回 null 表示不是 PE（或读不出来），
+// 调用方回退到打包机架构。
+function detectBinaryTarget(file) {
+  try {
+    const head = Buffer.alloc(64);
+    const fd = openSync(file, "r");
+    let read;
+    try {
+      read = readSync(fd, head, 0, 64, 0);
+    } finally {
+      closeSync(fd);
+    }
+    if (read < 64 || head[0] !== 0x4d || head[1] !== 0x5a) return null; // "MZ"
+    const peOffset = head.readUInt32LE(0x3c);
+    if (peOffset <= 0 || peOffset > 1 << 20) return null;
+    const sig = Buffer.alloc(6);
+    const fd2 = openSync(file, "r");
+    let read2;
+    try {
+      read2 = readSync(fd2, sig, 0, 6, peOffset);
+    } finally {
+      closeSync(fd2);
+    }
+    if (read2 < 6) return null;
+    if (sig.toString("latin1", 0, 4) !== "PE\0\0") return null;
+    const machine = sig.readUInt16LE(4);
+    const arch = machine === 0x8664 ? "amd64" : machine === 0xaa64 ? "arm64" : null;
+    return arch ? { os: "windows", arch } : null;
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +183,10 @@ if (!existsSync(join(stageRoot, "config.example.toml"))) {
 }
 
 // 4. cf-connect 二进制（可选）
+//    同时判断它到底是为哪个平台/架构编的 —— 包名要带平台标识，就得按二进制的
+//    真实架构命名，不能按打包机的架构（交叉编译时会错）。
 const binDir = join(packageDir, "bin");
+let detected = null; // { os, arch }
 if (withBinary) {
   const candidates =
     process.platform === "win32"
@@ -149,8 +197,10 @@ if (withBinary) {
     const src = join(PLUGIN_DIR, rel);
     if (!existsSync(src)) continue;
     mkdirSync(binDir, { recursive: true });
-    cpSync(src, join(binDir, rel.slice(4)));
+    const dest = join(binDir, rel.slice(4));
+    cpSync(src, dest);
     copied.push(rel);
+    if (!detected) detected = detectBinaryTarget(dest);
   }
   if (copied.length === 0) {
     console.log("  ! bin/ 里没有 cf-connect 可执行文件 —— 打包会缺少二进制。");
@@ -160,9 +210,19 @@ if (withBinary) {
   console.log("  · --no-binary：跳过二进制");
 }
 
-// 5. 打成 tgz（npm pack 布局：tar 根下就是 package/）
+// 平台标识：优先按二进制真实架构，其次按打包机
+const targetOs = detected?.os ?? (process.platform === "win32" ? "windows" : process.platform);
+const targetArch = detected?.arch ?? (process.arch === "x64" ? "amd64" : process.arch);
+const platformTag = `${targetOs}-${targetArch}`;
+if (detected) {
+  console.log(`  · 二进制目标平台：${platformTag}（由 PE 头识别）`);
+} else if (withBinary) {
+  console.log(`  · 二进制目标平台：${platformTag}（按打包机推断，未能读取 PE 头）`);
+}
+
+// 5. 打成 tgz（npm pack 布局：tar 根下就是 package/），包名带平台标识
 mkdirSync(OUT_DIR, { recursive: true });
-const tgzName = `${manifest.name}-plugin-${version}.tgz`;
+const tgzName = `${manifest.name}-plugin-${version}-${platformTag}.tgz`;
 const tgzPath = join(OUT_DIR, tgzName);
 rmSync(tgzPath, { force: true });
 

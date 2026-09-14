@@ -169,7 +169,12 @@ try {
     } else {
       bad("package/package.json 缺失");
     }
-    const fileVersion = (basename(tgz).match(/-(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)\.tgz$/) || [])[1] ?? null;
+    // 文件形如 cf-connect-dingtalk-plugin-<版本>[-<平台>].tgz，平台后缀可有可无
+    const nameMatch = basename(tgz).match(
+      /^cf-connect-dingtalk-plugin-(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.]+)?)(?:-([a-z0-9]+-[a-z0-9_]+))?\.tgz$/,
+    );
+    const fileVersion = nameMatch ? nameMatch[1] : null;
+    const filePlatform = nameMatch?.[2] ?? null;
 
     version ? ok(`plugin.json version = ${version}`) : bad("plugin.json 没有 version");
     pkgVersion === version
@@ -178,6 +183,9 @@ try {
     fileVersion === version
       ? ok(`文件名版本 = ${fileVersion}`)
       : bad(`文件名版本 = ${fileVersion}，与 plugin.json 的 ${version} 不一致`);
+    filePlatform
+      ? ok(`文件名带平台标识 = ${filePlatform}`)
+      : warn("文件名没有平台标识（形如 …-windows-amd64.tgz）——多平台分发时容易拿错包");
   }
 
   section("⑥ 注入内容：skills / commands");

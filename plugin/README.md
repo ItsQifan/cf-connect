@@ -20,7 +20,7 @@
 
 ## 如何安装 / 卸载
 
-1. 下载 `cf-connect-dingtalk-plugin-0.1.0.tgz`，**解压到一个目录**（建议英文路径，如 `D:\tools\cf-connect-dingtalk\`）
+1. 下载 `cf-connect-dingtalk-plugin-0.1.0-windows-amd64.tgz`，**解压到一个目录**（建议英文路径，如 `D:\tools\cf-connect-dingtalk\`）
 2. 在这个目录里打开 codefree-o，直接对话：
 
 ```
@@ -165,6 +165,8 @@ cf-connect daemon uninstall     # 删服务（保留数据与配置）
 
 ## 版本与许可
 
-- 插件版本 **0.1.0**（`plugin.json` = `package.json` = tgz 文件名）
+- 插件版本 **0.1.0**
 - 网关 `cf-connect` 版本 **v0.1.0**
+- 包名带平台标识：**`cf-connect-dingtalk-plugin-0.1.0-windows-amd64.tgz`**
+  （只提供 Windows x64 版本；包内的 `bin\cf-connect.exe` 就是 `windows-amd64` 架构）
 - MIT
