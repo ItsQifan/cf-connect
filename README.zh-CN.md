@@ -29,8 +29,9 @@
    可选执行包内 `install.ps1` 加入 PATH
 2. **建钉钉应用**：[钉钉开放平台](https://open-dev.dingtalk.com/) → 企业内部应用 →
    创建应用 → 添加「机器人」能力 → **消息接收模式选 Stream** → 记下 Client ID / Secret
-3. **配置并运行**：`copy config.example.toml config.toml` → 填 `work_dir`、`cmd`、
-   钉钉凭证 → `cf-connect.exe`（前台）或 `cf-connect.exe daemon install`（常驻）
+3. **配置并运行**：首次运行写出配置（固定落在 `%USERPROFILE%\.cf-connect\config.toml`，和会话/日志同处，
+   换版本不会丢）→ 填 `work_dir`、`cmd`、钉钉凭证 → `cf-connect.exe`（前台）
+   或 `cf-connect.exe daemon install --config "%USERPROFILE%\.cf-connect\config.toml"`（常驻）
 
 📖 完整图文步骤、排障表、常用命令：**[QUICKSTART.md](./QUICKSTART.md)**
 

@@ -1,7 +1,7 @@
 {
   "name": "cf-connect-dingtalk",
   "displayName": "CF-Connect 钉钉桥接",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bridge between DingTalk and a local CodeFree (codefree-o) CLI, driven by the cf-connect gateway.",
   "type": "module",
   "license": "MIT",

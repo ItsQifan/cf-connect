@@ -215,6 +215,56 @@ try {
   } else {
     warn("包内没有 cf-connect 二进制 —— 用户需要另行准备可执行文件（见 README「安装前置」）");
   }
+
+  section("⑧ install.ps1 的编码：Windows PowerShell 5.1 必须能解析");
+  // 用户机器上默认的 powershell.exe 就是 5.1，它不探测 UTF-8：
+  // 无 BOM 的 .ps1 会按系统 ANSI 代码页（中文 Windows = GBK）解码，
+  // 中文注释字节错位后吞掉引号 → `字符串缺少终止符: '`，脚本根本跑不起来。
+  //
+  // 会分发出去的 .ps1 有三个来源，都要盯：
+  //   ① 插件包里的 package/install.ps1（本 tgz，硬要求）
+  //   ② 插件源码 plugin/install.ps1（下一次打包的输入）
+  //   ③ 仓库根 install.ps1（standalone 发行 zip 通过 Makefile 的 DIST_FILES 带上它）
+  const ps1Targets = [
+    { label: "package/install.ps1", file: join(packageDir, "install.ps1"), required: true },
+    { label: "plugin/install.ps1", file: join(ROOT, "install.ps1"), required: false },
+    { label: "<repo>/install.ps1", file: join(ROOT, "..", "install.ps1"), required: false },
+  ];
+  for (const { label, file, required } of ps1Targets) {
+    if (!existsSync(file)) {
+      if (required) bad(`${label} 缺失`);
+      else warn(`${label} 不存在（跳过）`);
+      continue;
+    }
+    const head = readFileSync(file).subarray(0, 3);
+    head.length === 3 && head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf
+      ? ok(`${label} 带 UTF-8 BOM`)
+      : bad(
+          `${label} 缺 UTF-8 BOM —— PowerShell 5.1 会按 GBK 解码，中文注释吞掉引号后报「字符串缺少终止符」`,
+        );
+  }
+  const packagedPs1 = join(packageDir, "install.ps1");
+  if (process.platform !== "win32") {
+    warn("非 Windows：跳过 PowerShell 5.1 语法校验");
+  } else if (existsSync(packagedPs1)) {
+    const quoted = packagedPs1.replace(/'/g, "''");
+    const probe = spawnSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        `$e=$null; [void][System.Management.Automation.Language.Parser]::ParseFile('${quoted}',[ref]$null,[ref]$e); if ($e) { $e | ForEach-Object { $_.Extent.StartLineNumber.ToString() + ': ' + $_.Message }; exit 1 }`,
+      ],
+      { encoding: "utf8" },
+    );
+    if (probe.error) {
+      warn(`跳过 PowerShell 5.1 语法校验：${probe.error.message}`);
+    } else if (probe.status === 0) {
+      ok("Windows PowerShell 5.1 解析通过（用户机器上默认就是它）");
+    } else {
+      bad(`Windows PowerShell 5.1 解析失败：${(probe.stdout || probe.stderr || "").trim()}`);
+    }
+  }
 } finally {
   rmSync(work, { recursive: true, force: true });
 }

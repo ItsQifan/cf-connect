@@ -71,10 +71,14 @@ CF-Connect 是一个 **IM 通道网关**：把钉钉消息转成对本地 CodeFr
 ### 3. 配置并运行
 
 ```powershell
-copy config.example.toml config.toml
-notepad config.toml     # 填 work_dir、cmd 和钉钉凭证
+# 首次运行会把带占位符的样例配置写到用户目录，然后退出
+.\cf-connect.exe --config "$env:USERPROFILE\.cf-connect\config.toml"
+notepad "$env:USERPROFILE\.cf-connect\config.toml"   # 填 work_dir、cmd 和钉钉凭证
 .\cf-connect.exe        # 前台运行；验证通过后 daemon install 常驻
 ```
+
+> 配置固定放在 `%USERPROFILE%\.cf-connect\config.toml`，和会话历史 / 日志 / `api.sock` 同处一个目录：
+> 换压缩包、换解压位置都不会动它（放 exe 旁边的话，升级时会被连同旧目录一起删掉）。
 
 📖 **完整图文步骤、排障表、常用命令见 [QUICKSTART.md](./QUICKSTART.md)。**
 
@@ -127,7 +131,7 @@ notepad config.toml     # 填 work_dir、cmd 和钉钉凭证
 
 ```powershell
 cf-connect daemon stop
-# 用新 zip 覆盖解压到同一目录（config.toml 不会被动）
+# 用新 zip 覆盖解压到同一目录（配置在 %USERPROFILE%\.cf-connect，不受影响）
 cf-connect daemon start
 ```
 

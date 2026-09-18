@@ -1,11 +1,13 @@
 # =============================================================================
-# CF-Connect 配置示例  (v0.1.0)
+# CF-Connect 配置示例  (v0.1.1)
 # =============================================================================
-# 三步上手：
-#   1. copy config.example.toml config.toml
+# 三步上手（配置固定放在 ~/.cf-connect/config.toml，Windows 上是 %USERPROFILE%\.cf-connect\config.toml；
+#          它和会话历史 / 日志 / socket 同处一个目录，换程序版本或换解压位置都不会丢）：
+#   1. 首次运行会把这份样例写到该路径，然后退出：
+#      cf-connect.exe --config "%USERPROFILE%\.cf-connect\config.toml"
 #   2. 填下面 4 个地方：work_dir（必须是真实存在的目录）、cmd、client_id、client_secret
 #   3. cf-connect.exe            （前台跑，看到日志即成功）
-#      cf-connect.exe daemon install && cf-connect.exe daemon start   （常驻）
+#      cf-connect.exe daemon install --config "%USERPROFILE%\.cf-connect\config.toml"   （常驻）
 #
 # 说明：除了 [[projects]] 和它的 agent / platforms 两块，其余都是可选项；
 #       不需要的整段删掉或注释掉都不影响启动。
@@ -67,6 +69,11 @@ work_dir = "D:\\工作目录"
 
 # 要驱动的 CLI。可以写 PATH 里的名字，也可以写绝对路径（常驻服务推荐绝对路径，
 # 因为服务进程不会继承你终端里的 PATH）。
+# ⚠️ 千万别填 codefree-o.ps1：npm 装法的 codefree-o 有 无扩展名 / .cmd / .ps1 三份 shim，
+#    PowerShell 里 Get-Command codefree-o 常常给你 .ps1，而 cf-connect 用 Go 的 exec 拉不起 .ps1
+#    （症状：服务正常、日志正常，钉钉里第一句话报 `CLI not found in PATH`）。
+#    取法：$shim = (Get-Command codefree-o.cmd).Source，再用同目录下的
+#    node_modules\@srdcloud\codefree-o\bin\codefree-o.exe（存在就用它，否则用 $shim）。
 #   cmd = "codefree-o"
 #   cmd = ["C:\\nvm4w\\nodejs\\node_modules\\@srdcloud\\codefree-o\\bin\\codefree-o.exe"]
 cmd = "codefree-o"

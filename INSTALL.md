@@ -105,8 +105,14 @@ go build -tags 'no_web' -o cf-connect ./cmd/cf-connect
 ## 3. 配置
 
 ```bash
-cp config.example.toml config.toml
+# 首次运行写出带占位符的样例配置到用户目录，然后退出
+./cf-connect --config "$HOME/.cf-connect/config.toml"
+# 填 work_dir / cmd / client_id / client_secret
+$EDITOR "$HOME/.cf-connect/config.toml"
 ```
+
+> 约定：配置固定放在 `~/.cf-connect/config.toml`（Windows：`%USERPROFILE%\.cf-connect\config.toml`），
+> 和会话历史 / 日志 / `api.sock` 同处一个目录 —— 换程序版本、换解压位置都不会丢配置和凭证。
 
 配置文件查找顺序：
 
@@ -125,7 +131,9 @@ type = "opencode"          # 或写 "codefree-o"，同一个适配器
 
 [projects.agent.options]
 work_dir = "E:\\work\\my-project"
-cmd = "codefree-o"          # 建议改成绝对路径（daemon 不继承终端 PATH）
+cmd = "C:\\nvm4w\\nodejs\\node_modules\\@srdcloud\\codefree-o\\bin\\codefree-o.exe"
+                            # ★ 宿主 CLI 的绝对路径（daemon 不继承终端 PATH）
+                            #   别用 (Get-Command codefree-o).Source —— 那多半给 .ps1，Go 的 exec 拉不起来
 mode = "default"
 
 [[projects.platforms]]
@@ -212,8 +220,8 @@ cf-connect config example         # 打印完整配置模板
 
 ```bash
 cf-connect daemon stop
-# 备份 config.toml 与 ~/.cf-connect/
-# 用新压缩包覆盖解压到同一目录（压缩包内没有 config.toml，不会被覆盖）
+# 备份 ~/.cf-connect/（配置和会话数据都在里面）
+# 用新压缩包覆盖解压到同一目录（配置不在解压目录里，不受影响）
 cf-connect daemon start
 cf-connect --version
 ```

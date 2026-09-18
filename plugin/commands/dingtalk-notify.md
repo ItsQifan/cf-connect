@@ -19,5 +19,7 @@ $ARGUMENTS
 
 3. 命令成功（退出码 0，输出 `Message sent successfully.`）就回一句"已推送到钉钉"。
 4. 如果报 `cf-connect is not running (socket not found: ...)`，说明网关没启动或
-   没有活跃会话 —— 把内容直接回复给用户，并提示可用
-   `cf-connect daemon start` 启动网关，**不要反复重试**。
+   没有活跃会话 —— 把内容直接回复给用户，并提示他用
+   `cf-connect daemon install --config "%USERPROFILE%\.cf-connect\config.toml"`
+   （配置就放在用户目录的 `.cf-connect` 下；装过就 `daemon restart`）把网关起成后台服务，
+   **不要用前台方式跑**（命令一结束进程就没了），**不要反复重试**。

@@ -67,6 +67,19 @@ function copyTree(from, to) {
   }
 }
 
+// .ps1 一律以"UTF-8 + BOM + CRLF"落盘。
+//
+// 原因：Windows PowerShell 5.1（用户机器上默认的那个）不做 UTF-8 自动探测，
+// 会把**无 BOM** 的 .ps1 按系统 ANSI 代码页（中文 Windows 上是 GBK）解码。
+// 我们的脚本注释和提示是中文，字节错位后会把某个引号吞掉，脚本直接
+// ParserError：`字符串缺少终止符: '`。源码里带着 BOM 也照样归一化一遍，
+// 免得有人用编辑器存回无 BOM 版本又把包打坏。
+function copyScriptWithBom(src, dst) {
+  const text = readFileSync(src, "utf8").replace(/^\uFEFF/, "").replace(/\r?\n/g, "\r\n");
+  mkdirSync(dirname(dst), { recursive: true });
+  writeFileSync(dst, "\uFEFF" + text);
+}
+
 function walk(dir, base = dir) {
   const out = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -174,8 +187,13 @@ for (const { name, from } of rootExtras) {
     console.log(`  ! 跳过 ${name}（没有这个文件：${src}）`);
     continue;
   }
-  cpSync(src, join(stageRoot, name));
-  cpSync(src, join(packageDir, name));
+  if (name.toLowerCase().endsWith(".ps1")) {
+    copyScriptWithBom(src, join(stageRoot, name));
+    copyScriptWithBom(src, join(packageDir, name));
+  } else {
+    cpSync(src, join(stageRoot, name));
+    cpSync(src, join(packageDir, name));
+  }
   console.log(`  · 收入 ${name}`);
 }
 if (!existsSync(join(stageRoot, "config.example.toml"))) {

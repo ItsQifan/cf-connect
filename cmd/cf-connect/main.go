@@ -1471,14 +1471,21 @@ func printUsage() {
 		v = "dev"
 	}
 
+	// Banner: heavy solid-block lettering (only U+2588 and spaces).
+	//
+	// The previous banner used the figlet "standard" font, whose thin
+	// underscores and pipes overlap into an unreadable smear in terminals and
+	// TUIs that collapse line height. Solid blocks stay legible at any
+	// line-height, and the plain-text line right below spells the name out
+	// even if a client cannot render the blocks at all.
 	fmt.Fprintf(os.Stderr, `
-                                              _
-  ___ ___        ___ ___  _ __  _ __   ___  ___| |_
- / __/ __|_____ / __/ _ \| '_ \| '_ \ / _ \/ __| __|
-| (_| (_|_____|  (_| (_) | | | | | | |  __/ (__| |_
- \___\__|      \___\___/|_| |_|_| |_|\___|\___|\__|  %s
+ █████ ██████         █████  ████  ██  ██ ██  ██ ██████  █████ ██████
+██     ██            ██     ██  ██ ███ ██ ███ ██ ██     ██       ██
+██     █████   ████  ██     ██  ██ ██ ███ ██ ███ █████  ██       ██
+██     ██            ██     ██  ██ ██  ██ ██  ██ ██     ██       ██
+ █████ ██             █████  ████  ██  ██ ██  ██ ██████  █████   ██
 
-  Bridge DingTalk to your local CodeFree-O / OpenCode agent.
+  cf-connect %s — Bridge DingTalk to your local CodeFree-O / OpenCode agent.
 
   Agent:     CodeFree-O (codefree-o), OpenCode (opencode)
   Platform:  DingTalk (Stream mode)

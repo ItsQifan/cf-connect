@@ -31,7 +31,7 @@ description: 当用户提到"钉钉"、"推送到钉钉"、"通知我"、"在群
 cf-connect send --stdin <<'EOF'
 **构建完成** ✅
 - 用例：128 passed / 0 failed
-- 产物：dist/cf-connect-v0.1.0-windows-amd64.zip
+- 产物：dist/cf-connect-v0.1.1-windows-amd64.zip
 EOF
 ```
 

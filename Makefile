@@ -7,9 +7,11 @@ DIST       := dist
 # (the upstream part tracked the cc-connect commit the tree was trimmed from).
 # v1.0.0 started a clean line for the standalone product: DingTalk + CodeFree-O,
 # with the live-verified release. v0.1.0 is the competition release that adds the
-# CodeFree plugin package (see plugin/README.md); `git log` still reaches the
-# upstream baseline through the baseline-upstream-3a6534d tag.
-VERSION := v0.1.0
+# CodeFree plugin package (see plugin/README.md); v0.1.1 adds the legible
+# cf-connect banner, daemon-based install, and the /whoami → allow_from /
+# admin_from / work_dir onboarding. `git log` still reaches the upstream
+# baseline through the baseline-upstream-3a6534d tag.
+VERSION := v0.1.1
 COMMIT     := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 BUILD_TIME := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 

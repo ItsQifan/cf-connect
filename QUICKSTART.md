@@ -82,9 +82,14 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 ```powershell
 cd D:\tools\cf-connect
-copy config.example.toml config.toml
-notepad config.toml
+# 首次运行写出样例配置（用户目录，和会话/日志同处），然后退出
+.\cf-connect.exe --config "$env:USERPROFILE\.cf-connect\config.toml"
+notepad "$env:USERPROFILE\.cf-connect\config.toml"
 ```
+
+> 配置固定放在 `%USERPROFILE%\.cf-connect\config.toml`（不在解压目录里）。
+> 查找顺序是 `--config` > 当前目录 `./config.toml` > `~/.cf-connect/config.toml`，
+> 所以生成/校验/装服务时都显式带 `--config`，免得当前目录里恰好有一份 `config.toml` 把它顶掉。
 
 最少只需要改这几处：
 
@@ -101,7 +106,8 @@ type = "opencode"
 
 [projects.agent.options]
 work_dir = "E:\\work\\my-project"    # 你希望它改代码的目录
-cmd = "codefree-o"                   # 或填 codefree-o.exe 的绝对路径
+cmd = "C:\\nvm4w\\nodejs\\node_modules\\@srdcloud\\codefree-o\\bin\\codefree-o.exe"
+                                     # 宿主 CLI 的绝对路径（取法见下方说明）
 mode = "default"                     # 只决定追加哪个权限 flag，不是"安全模式"，见下方说明
 
 [[projects.platforms]]
@@ -124,8 +130,15 @@ client_secret = "第 2 步拿到的 AppSecret"
 > 下不是"不生效"，而是会被 TOML 解码器**静默丢弃**（既不报错也不告警），
 > 结果就是机器人对所有人开放。
 
-> **强烈建议 `cmd` 填绝对路径。** 后台服务（daemon）通常不继承你当前终端的 PATH。
-> 用 `where codefree-o` 可以查到路径。
+> **`cmd` 必须填绝对路径。** 后台服务（daemon）不继承你当前终端的 PATH。
+>
+> ⚠️ 别直接抄 `where codefree-o` 或 `(Get-Command codefree-o).Source`：npm 装法的 codefree-o
+> 同时有 `.ps1` / `.cmd` / 无扩展名三份 shim，这两条命令可能给你 **`.ps1`**，
+> 而 cf-connect 内部用 Go 的 `exec` **拉不起 `.ps1`**。症状很有迷惑性：服务正常、日志正常，
+> 只有钉钉里第一句话报 `"..." CLI not found in PATH`。正确取法：
+> `$shim = (Get-Command codefree-o.cmd).Source`，再取
+> `Join-Path (Split-Path $shim) 'node_modules\@srdcloud\codefree-o\bin\codefree-o.exe'`
+> （存在就用它，否则用 `$shim`）。
 
 ### 前台运行（先这样验证）
 
@@ -233,12 +246,12 @@ level=INFO msg="cf-connect is running" projects=1
 
 ```powershell
 cf-connect daemon stop
-# 用新的 zip 覆盖解压到同一目录（config.toml 不会被覆盖）
+# 用新的 zip 覆盖解压到同一目录（配置在 %USERPROFILE%\.cf-connect，不受影响）
 cf-connect daemon start
 cf-connect --version      # 确认版本
 ```
 
-> 覆盖前建议先备份 `config.toml` 和 `~/.cf-connect/`。
+> 配置和会话数据都在 `~/.cf-connect/` 里，覆盖压缩包不会碰它们；要保险可以整体备份这个目录。
 
 ---
 

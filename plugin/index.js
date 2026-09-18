@@ -27,7 +27,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_ID = "cf-connect-dingtalk";
-const PLUGIN_VERSION = "0.1.0";
+const PLUGIN_VERSION = "0.1.1";
 const IS_WINDOWS = process.platform === "win32";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -81,6 +81,7 @@ function binaryCandidates() {
     candidates.push(join(homedir(), ".cf-connect", "bin", name));
   }
   if (IS_WINDOWS) {
+    candidates.push("D:\\software\\cf-connect-v0.1.1-windows-amd64\\cf-connect.exe");
     candidates.push("D:\\software\\cf-connect-v0.1.0-windows-amd64\\cf-connect.exe");
     candidates.push("D:\\software\\cf-connect-v1.0.0-windows-amd64\\cf-connect.exe");
   }
